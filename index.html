@@ -113,13 +113,7 @@
 </head>
 <body>
 
-<header>
-  <div>
-    <div class="spot-name">⛵ Vigo</div>
-    <div class="spot-sub">GFS · 48 h · km/h</div>
-  </div>
-  <div class="update-time" id="update-time">—</div>
-</header>
+
 
 <div id="estado"><span class="spinner"></span> Cargando datos…</div>
 
@@ -155,9 +149,9 @@
       { label: 'Fecha',    cells: fechaCells },
       { label: 'Hora',
         cells: data.map((d,i) => `<td class="r-hora${i===nowIdx?' now-col':''}">${d.hora}h</td>`).join('') },
-      { label: 'Vto km/h',
+      { label: 'Viento',
         cells: data.map(d => `<td class="r-wind"><span class="${windClass(d.viento)}">${d.viento}</span></td>`).join('') },
-      { label: 'Ráf km/h',
+      { label: 'Rachas',
         cells: data.map(d => `<td class="r-gust"><span class="${windClass(d.rafagas)}">${d.rafagas}</span></td>`).join('') },
       { label: 'Na %',
         cells: data.map(d => `<td class="r-high">${d.nub_alta}</td>`).join('') },
@@ -165,9 +159,9 @@
         cells: data.map(d => `<td class="r-mid">${d.nub_media}</td>`).join('') },
       { label: 'Nb %',
         cells: data.map(d => `<td class="r-low">${d.nub_baja}</td>`).join('') },
-      { label: 'Temp °C',
+      { label: 'Temp',
         cells: data.map(d => `<td class="r-temp">${d.temp}°</td>`).join('') },
-      { label: 'Lluvia mm',
+      { label: 'Lluvia',
         cells: data.map(d => `<td class="r-rain">${d.lluvia}</td>`).join('') },
     ];
 
