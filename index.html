@@ -149,6 +149,10 @@
       { label: 'Fecha',    cells: fechaCells },
       { label: 'Hora',
         cells: data.map((d,i) => `<td class="r-hora${i===nowIdx?' now-col':''}">${d.hora}h</td>`).join('') },
+      { label: 'Lluvia',
+        cells: data.map(d => `<td class="r-rain">${d.lluvia}</td>`).join('') },
+      { label: 'Temp',
+        cells: data.map(d => `<td class="r-temp">${d.temp}°</td>`).join('') },
       { label: 'Viento',
         cells: data.map(d => `<td class="r-wind"><span class="${windClass(d.viento)}">${d.viento}</span></td>`).join('') },
       { label: 'Rachas',
@@ -159,10 +163,6 @@
         cells: data.map(d => `<td class="r-mid">${d.nub_media}</td>`).join('') },
       { label: 'Nb %',
         cells: data.map(d => `<td class="r-low">${d.nub_baja}</td>`).join('') },
-      { label: 'Temp',
-        cells: data.map(d => `<td class="r-temp">${d.temp}°</td>`).join('') },
-      { label: 'Lluvia',
-        cells: data.map(d => `<td class="r-rain">${d.lluvia}</td>`).join('') },
     ];
 
     return filas.map(f =>
