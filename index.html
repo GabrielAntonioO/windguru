@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <title>Viento · Spot 1066</title>
+  <style>
+    :root {
+      --bg:       #0a0a0f;
+      --border:   #1e1e2a;
+      --text:     #e8e8f0;
+      --muted:    #555566;
+      --label-bg: #0d0d14;
+      --font:     'SF Mono', 'Fira Code', 'Menlo', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 11px;
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+
+    header {
+      padding: 10px 12px 8px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 10;
+    }
+
+    .spot-name {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+
+    .spot-sub {
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-top: 1px;
+    }
+
+    .update-time {
+      font-size: 9px;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    #estado {
+      padding: 20px 12px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid var(--border);
+      border-top-color: var(--text);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-box {
+      margin: 16px 12px;
+      padding: 12px;
+      background: #2a0a0a;
+      border: 1px solid #5a1a1a;
+      border-radius: 6px;
+      color: #ff6b6b;
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .retry-btn {
+      margin-top: 10px;
+      display: inline-block;
+      padding: 6px 14px;
+      background: #3a1010;
+      border: 1px solid #7a2020;
+      border-radius: 4px;
+      color: #ff9999;
+      cursor: pointer;
+      font-family: var(--font);
+      font-size: 11px;
+    }
+
+    .scroll {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .scroll::-webkit-scrollbar { height: 3px; }
+    .scroll::-webkit-scrollbar-track { background: var(--bg); }
+    .scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    table { border-collapse: collapse; white-space: nowrap; }
+
+    td {
+      padding: 5px 8px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    .label {
+      position: sticky;
+      left: 0;
+      background: var(--label-bg);
+      font-weight: 600;
+      color: var(--muted);
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 5px 10px 5px 12px;
+      border-right: 1px solid var(--border);
+      z-index: 2;
+      min-width: 70px;
+    }
+
+    /* filas */
+    .r-date  { background: #111118; font-size: 10px; color: var(--muted); font-weight: 700; letter-spacing: .08em; }
+    .r-hora  { background: #1a1a26; font-weight: 700; font-size: 12px; }
+    .r-wind  { background: #1a7a3a; }
+    .r-gust  { background: #7a5a00; }
+    .r-dir   { background: #2a2a3a; font-size: 13px; }
+    .r-temp  { background: #5a2a8a; }
+    .r-low   { background: #1a3f7a; }
+    .r-mid   { background: #2a5090; }
+    .r-high  { background: #4a70a0; }
+    .r-rain  { background: #1a3ab0; }
+
+    /* hora actual resaltada */
+    .r-hora td.now-col {
+      background: #2a2a00;
+      color: #ffee44;
+      font-weight: 900;
+    }
+
+    /* colores viento */
+    .wind-calm   { color: #aaffbb; }
+    .wind-light  { color: #88ffaa; }
+    .wind-mod    { color: #ffee44; }
+    .wind-fresh  { color: #ffbb22; }
+    .wind-strong { color: #ff6622; }
+    .wind-storm  { color: #ff2222; font-weight: 900; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="spot-name">⛵ Spot 1066</div>
+    <div class="spot-sub">GFS · 24 h · km/h</div>
+  </div>
+  <div class="update-time" id="update-time">—</div>
+</header>
+
+<div id="estado">
+  <span class="spinner"></span> Cargando datos…
+</div>
+
+<div class="scroll" id="contenedor" style="display:none">
+  <table id="tabla"></table>
+</div>
+
+<script>
+  function windClass(v) {
+    if (v < 10) return 'wind-calm';
+    if (v < 20) return 'wind-light';
+    if (v < 30) return 'wind-mod';
+    if (v < 40) return 'wind-fresh';
+    if (v < 55) return 'wind-strong';
+    return 'wind-storm';
+  }
+
+  function dirArrow(deg) {
+    if (deg === null || deg === undefined) return '·';
+    const arrows = ['↓','↙','←','↖','↑','↗','→','↘'];
+    return arrows[Math.round(((deg % 360) / 45)) % 8];
+  }
+
+  function formatDate(hora) {
+    // Open-Meteo devuelve hora UTC 0-23; construimos fecha aproximada
+    const now = new Date();
+    // si la hora ya pasó, es mañana
+    return hora;
+  }
+
+  function buildTable(data) {
+    const nowH = new Date().getUTCHours();
+    let nowIdx = 0, minDist = 999;
+    data.forEach((d, i) => {
+      const dist = Math.abs(d.hora - nowH);
+      if (dist < minDist) { minDist = dist; nowIdx = i; }
+    });
+
+    // Agrupar por día
+    const now = new Date();
+    function diaLabel(h, i) {
+      const d = new Date(now);
+      // cada hora del array es UTC; si hora < hora actual, es mañana
+      if (i > 0 && data[i].hora < data[i-1].hora) d.setDate(d.getDate() + 1);
+      return d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+    }
+
+    // Fila de fecha (detectar cambio de día)
+    let fechaActual = '';
+    const fechaCells = data.map((d, i) => {
+      const fecha = new Date(now);
+      // aproximación: si hora es menor que la anterior, cambió el día
+      if (i > 0 && d.hora < data[i-1].hora) fecha.setDate(fecha.getDate() + 1);
+      const label = fecha.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' });
+      const show = label !== fechaActual ? label : '';
+      fechaActual = label;
+      return `<td class="r-date">${show}</td>`;
+    }).join('');
+
+    const filas = [
+      { label: 'Fecha',    clase: 'r-date', cells: fechaCells },
+      { label: 'Hora',     clase: 'r-hora',
+        cells: data.map((d,i) => `<td class="r-hora${i===nowIdx?' now-col':''}">${d.hora}h</td>`).join('') },
+      { label: 'Vto km/h', clase: 'r-wind',
+        cells: data.map(d => `<td class="r-wind"><span class="${windClass(d.viento)}">${d.viento}</span></td>`).join('') },
+      { label: 'Ráf km/h', clase: 'r-gust',
+        cells: data.map(d => `<td class="r-gust"><span class="${windClass(d.rafagas)}">${d.rafagas}</span></td>`).join('') },
+      { label: 'Dir',      clase: 'r-dir',
+        cells: data.map(d => `<td class="r-dir">${dirArrow(d.dir)}</td>`).join('') },
+      { label: 'Na %',     clase: 'r-high',
+        cells: data.map(d => `<td class="r-high">${d.nub_alta}</td>`).join('') },
+      { label: 'Nm %',     clase: 'r-mid',
+        cells: data.map(d => `<td class="r-mid">${d.nub_media}</td>`).join('') },
+      { label: 'Nb %',     clase: 'r-low',
+        cells: data.map(d => `<td class="r-low">${d.nub_baja}</td>`).join('') },
+      { label: 'Temp °C',  clase: 'r-temp',
+        cells: data.map(d => `<td class="r-temp">${d.temp}°</td>`).join('') },
+      { label: 'Lluvia mm',clase: 'r-rain',
+        cells: data.map(d => `<td class="r-rain">${d.lluvia}</td>`).join('') },
+    ];
+
+    return filas.map(f =>
+      `<tr><td class="label">${f.label}</td>${f.cells}</tr>`
+    ).join('');
+  }
+
+  function mostrarError(msg) {
+    document.getElementById('estado').innerHTML = `
+      <div class="error-box">⚠️ ${msg}<br>
+        <span class="retry-btn" onclick="cargar()">↻ Reintentar</span>
+      </div>`;
+  }
+
+  async function cargar() {
+    document.getElementById('contenedor').style.display = 'none';
+    document.getElementById('estado').style.display = 'block';
+    document.getElementById('estado').innerHTML =
+      '<span class="spinner"></span> Cargando datos…';
+
+    try {
+      // ← URL adaptada a Vercel (en lugar de /.netlify/functions/wind)
+      const res = await fetch('/api/wind');
+      const data = await res.json();
+
+      if (!res.ok || data.error) { mostrarError(data.error || `Error ${res.status}`); return; }
+      if (!Array.isArray(data) || data.length === 0) { mostrarError('Sin datos.'); return; }
+
+      document.getElementById('tabla').innerHTML = buildTable(data);
+      document.getElementById('estado').style.display = 'none';
+      document.getElementById('contenedor').style.display = 'block';
+      document.getElementById('update-time').textContent =
+        'Act. ' + new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
+      setTimeout(() => {
+        const nowCol = document.querySelector('.now-col');
+        if (nowCol) nowCol.scrollIntoView({ inline: 'center', behavior: 'smooth' });
+      }, 300);
+
+    } catch (e) {
+      mostrarError('Sin conexión.');
+    }
+  }
+
+  cargar();
+  setInterval(cargar, 10 * 60 * 1000);
+</script>
+</body>
+</html>
