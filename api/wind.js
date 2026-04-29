@@ -12,34 +12,40 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Vigo: 42.24°N, -8.72°E
     const url =
-      "https://www.windguru.cz/int/iapi.php?model=GFS&spot=1066&units_wind=kmh&units_temp=c";
+      "https://api.open-meteo.com/v1/forecast" +
+      "?latitude=42.24&longitude=-8.72" +
+      "&hourly=wind_speed_10m,wind_gusts_10m,wind_direction_10m" +
+      ",temperature_2m,cloud_cover_low,cloud_cover_mid,cloud_cover_high,precipitation" +
+      "&wind_speed_unit=kmh" +
+      "&timezone=Europe%2FMadrid" +
+      "&forecast_days=2";
 
-    const r = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
-        "Referer": "https://www.windguru.cz/",
-        "Accept": "application/json",
-      },
-    });
-
-    if (!r.ok) throw new Error(`Windguru status ${r.status}`);
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`Open-Meteo status ${r.status}`);
 
     const data = await r.json();
+    const h = data.hourly;
 
-    if (!data?.fcst?.hour) throw new Error("Respuesta inesperada de Windguru");
+    if (!h?.time) throw new Error("Respuesta inesperada de Open-Meteo");
 
-    const result = data.fcst.hour.map((h, i) => ({
-      hora:      h,
-      viento:    Math.round(data.fcst.wind_speed?.[i]   ?? 0),
-      rafagas:   Math.round(data.fcst.gust?.[i]          ?? 0),
-      dir:       data.fcst.wind_direction?.[i]            ?? null,
-      temp:      Math.round(data.fcst.temp?.[i]           ?? 0),
-      nub_baja:  data.fcst.cloud_low?.[i]                 ?? 0,
-      nub_media: data.fcst.cloud_mid?.[i]                 ?? 0,
-      nub_alta:  data.fcst.cloud_high?.[i]                ?? 0,
-      lluvia:    parseFloat((data.fcst.rain?.[i] ?? 0).toFixed(1)),
-    })).slice(0, 24);
+    const result = h.time.map((t, i) => {
+      const fecha = new Date(t);
+      return {
+        timestamp: t,
+        hora:      fecha.getHours(),
+        dia:       fecha.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }),
+        viento:    Math.round(h.wind_speed_10m?.[i]      ?? 0),
+        rafagas:   Math.round(h.wind_gusts_10m?.[i]      ?? 0),
+        dir:       Math.round(h.wind_direction_10m?.[i]  ?? 0),
+        temp:      Math.round(h.temperature_2m?.[i]      ?? 0),
+        nub_baja:  Math.round(h.cloud_cover_low?.[i]     ?? 0),
+        nub_media: Math.round(h.cloud_cover_mid?.[i]     ?? 0),
+        nub_alta:  Math.round(h.cloud_cover_high?.[i]    ?? 0),
+        lluvia:    parseFloat((h.precipitation?.[i]      ?? 0).toFixed(1)),
+      };
+    }).slice(0, 48);
 
     cache = result;
     cacheTime = now;
