@@ -27,48 +27,54 @@
       overflow-x: hidden;
     }
 
-    header {
-      padding: 12px 14px 10px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      position: sticky;
-      top: 0;
-      background: var(--bg);
-      z-index: 10;
-    }
-
-    .spot-name { font-size: 18px; font-weight: 700; letter-spacing: 0.08em; }
-    .spot-sub  { font-size: 12px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px; }
-    .update-time { font-size: 12px; color: var(--muted); text-align: right; }
-
     #estado {
-      padding: 24px 14px; text-align: center;
-      color: var(--muted); font-size: 14px; letter-spacing: 0.1em;
+      padding: 24px 14px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+      letter-spacing: 0.1em;
     }
 
     .spinner {
-      display: inline-block; width: 16px; height: 16px;
-      border: 2px solid var(--border); border-top-color: var(--text);
-      border-radius: 50%; animation: spin 0.8s linear infinite;
-      margin-right: 8px; vertical-align: middle;
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid var(--border);
+      border-top-color: var(--text);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     .error-box {
-      margin: 16px 14px; padding: 14px;
-      background: #2a0a0a; border: 1px solid #5a1a1a;
-      border-radius: 6px; color: #ff6b6b; font-size: 14px; line-height: 1.5;
-    }
-    .retry-btn {
-      margin-top: 10px; display: inline-block; padding: 8px 16px;
-      background: #3a1010; border: 1px solid #7a2020;
-      border-radius: 4px; color: #ff9999; cursor: pointer;
-      font-family: var(--font); font-size: 14px;
+      margin: 16px 14px;
+      padding: 14px;
+      background: #2a0a0a;
+      border: 1px solid #5a1a1a;
+      border-radius: 6px;
+      color: #ff6b6b;
+      font-size: 14px;
+      line-height: 1.5;
     }
 
-    .scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .retry-btn {
+      margin-top: 10px;
+      display: inline-block;
+      padding: 8px 16px;
+      background: #3a1010;
+      border: 1px solid #7a2020;
+      border-radius: 4px;
+      color: #ff9999;
+      cursor: pointer;
+      font-family: var(--font);
+      font-size: 14px;
+    }
+
+    .scroll {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
     .scroll::-webkit-scrollbar { height: 4px; }
     .scroll::-webkit-scrollbar-track { background: var(--bg); }
     .scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
@@ -76,28 +82,31 @@
     table { border-collapse: collapse; white-space: nowrap; }
 
     td {
-      padding: 8px 14px; text-align: center;
+      padding: 8px 14px;
+      text-align: center;
       border-bottom: 1px solid var(--border);
-      vertical-align: middle; font-size: 20px;
+      vertical-align: middle;
+      font-size: 20px;
     }
 
     .label {
-      position: sticky; left: 0;
-      background: var(--label-bg); font-weight: 600;
-      color: #ffffff; font-size: 20px;
-      letter-spacing: 0.1em; text-transform: uppercase;
+      position: sticky;
+      left: 0;
+      background: var(--label-bg);
+      font-weight: 600;
+      color: #ffffff;
+      font-size: 20px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
       padding: 8px 12px 8px 14px;
       border-right: 1px solid var(--border);
-      z-index: 2; min-width: 100px;
+      z-index: 2;
+      min-width: 100px;
     }
 
     .r-date  { background: #111118; font-size: 20px; color: #ffffff; font-weight: 700; }
     .r-hora  { background: #1a1a26; font-weight: 700; font-size: 20px; }
     .r-wind  { background: #1a7a3a; }
-.wind-suave { background: #1a6a2a; }
-    .wind-medio { background: #6a5a0a; }
-    .wind-fuerte { background: #8a4a0a; }
-    .wind-muy_fuerte { background: #8a1a1a; }
     .r-gust  { background: #7a5a00; }
     .r-temp  { background: #5a2a8a; }
     .r-low   { background: #1a3f7a; }
@@ -105,7 +114,23 @@
     .r-high  { background: #4a70a0; }
     .r-rain  { background: #1a3ab0; }
 
-    .r-hora td.now-col { background: #2a2a00; color: #ffee44; font-weight: 900; }
+    /* Intensidad de viento */
+    .wind-suave      { background: #1a6a2a !important; }
+    .wind-medio      { background: #6a5a0a !important; }
+    .wind-fuerte     { background: #8a4a0a !important; }
+    .wind-muy_fuerte { background: #8a1a1a !important; }
+
+    /* Separador de cambio de día */
+    .day-sep td {
+      border-left: 3px solid #4a70a0;
+      border-right: 3px solid #4a70a0;
+    }
+
+    .r-hora td.now-col {
+      background: #2a2a00;
+      color: #ffee44;
+      font-weight: 900;
+    }
 
     .wind-calm   { color: #aaffbb; }
     .wind-light  { color: #88ffaa; }
@@ -116,8 +141,6 @@
   </style>
 </head>
 <body>
-
-
 
 <div id="estado"><span class="spinner"></span> Cargando datos…</div>
 
@@ -136,56 +159,90 @@
   }
 
   function buildTable(data) {
+    if (!data || data.length === 0) return '';
+
     const nowStr = new Date().toISOString().slice(0, 13);
     let nowIdx = 0;
     data.forEach((d, i) => {
       if (d.timestamp && d.timestamp.slice(0, 13) === nowStr) nowIdx = i;
     });
 
-    let lastDia = '';
-    const fechaCells = data.map(d => {
-      const show = d.dia !== lastDia ? d.dia : '';
-      lastDia = d.dia;
-      return `<td class="r-date">${show}</td>`;
-    }).join('');
+    // Detectar dónde cambia el día
+    let dayChangeIdx = -1;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i].dia !== data[i-1].dia) {
+        dayChangeIdx = i;
+        break;
+      }
+    }
 
+    // Filas de datos
+    let lastDia = '';
     const filas = [
-      { label: 'Fecha',    cells: fechaCells },
-      { label: 'Hora',
-        cells: data.map((d,i) => `<td class="r-hora${i===nowIdx?' now-col':''}">${d.hora}h</td>`).join('') },
-      { label: 'Lluvia',
-        cells: data.map(d => `<td class="r-rain">${d.lluvia}</td>`).join('') },
-      { label: 'Temp',
-        cells: data.map(d => `<td class="r-temp">${d.temp}°</td>`).join('') },
-      { label: 'Viento',
-        cells: data.map(d => `<td class="r-wind wind-${d.intensidad}"><span class="${windClass(d.viento)}">${d.viento}</span></td>`).join('') },
-      { label: 'Rachas',
-        cells: data.map(d => `<td class="r-gust"><span class="${windClass(d.rafagas)}">${d.rafagas}</span></td>`).join('') },
-      { label: 'Na %',
-        cells: data.map(d => `<td class="r-high">${d.nub_alta}</td>`).join('') },
-      { label: 'Nm %',
-        cells: data.map(d => `<td class="r-mid">${d.nub_media}</td>`).join('') },
-      { label: 'Nb %',
-        cells: data.map(d => `<td class="r-low">${d.nub_baja}</td>`).join('') },
+      {
+        label: 'Fecha',
+        cells: data.map(d => {
+          const show = d.dia !== lastDia ? d.dia : '';
+          lastDia = d.dia;
+          return `<td class="r-date">${show}</td>`;
+        }).join('')
+      },
+      {
+        label: 'Hora',
+        cells: data.map((d,i) => `<td class="r-hora${i===nowIdx?' now-col':''}">${d.hora}h</td>`).join('')
+      },
+      {
+        label: 'Lluvia',
+        cells: data.map(d => `<td class="r-rain">${d.lluvia}</td>`).join('')
+      },
+      {
+        label: 'Temp',
+        cells: data.map(d => `<td class="r-temp">${d.temp}°</td>`).join('')
+      },
+      {
+        label: 'Viento',
+        cells: data.map(d => `<td class="r-wind wind-${d.intensidad}"><span class="${windClass(d.viento)}">${d.viento}</span></td>`).join('')
+      },
+      {
+        label: 'Rachas',
+        cells: data.map(d => `<td class="r-gust"><span class="${windClass(d.rafagas)}">${d.rafagas}</span></td>`).join('')
+      },
+      {
+        label: 'Na %',
+        cells: data.map(d => `<td class="r-high">${d.nub_alta}</td>`).join('')
+      },
+      {
+        label: 'Nm %',
+        cells: data.map(d => `<td class="r-mid">${d.nub_media}</td>`).join('')
+      },
+      {
+        label: 'Nb %',
+        cells: data.map(d => `<td class="r-low">${d.nub_baja}</td>`).join('')
+      }
     ];
 
-    // Generar filas normales
+    // Generar HTML de tabla
     let html = '';
-    for (const fila of filas) {
-      // Agregar separador antes de la primera columna de datos después de cambio de día
-      const cells_array = fila.cells.split('</td>');
-      let separated_cells = '';
-      for (let i = 0; i < cells_array.length - 1; i++) {
-        const cell = cells_array[i] + '</td>';
-        // Si es la columna del cambio de día, agregar clase
-        if (dayChangeIdx > 0 && i === dayChangeIdx) {
-          separated_cells += cell.replace('<td', '<td class="day-separator"');
+    filas.forEach((fila, fidx) => {
+      html += `<tr${fidx === 0 ? '' : ''}>`;
+      html += `<td class="label">${fila.label}</td>`;
+      
+      // Dividir celdas por hora
+      const cellsStr = fila.cells;
+      const cells = cellsStr.split('</td>').slice(0, -1).map(c => c + '</td>');
+      
+      cells.forEach((cell, cidx) => {
+        // Agregar separador de día si es necesario
+        if (dayChangeIdx > 0 && cidx === dayChangeIdx) {
+          html += cell.replace('<td', '<td style="border-left: 3px solid #4a70a0; border-right: 3px solid #4a70a0"');
         } else {
-          separated_cells += cell;
+          html += cell;
         }
-      }
-      html += `<tr><td class="label">${fila.label}</td>${separated_cells}</tr>`;
-    }
+      });
+      
+      html += '</tr>';
+    });
+
     return html;
   }
 
@@ -199,21 +256,25 @@
   async function cargar() {
     document.getElementById('contenedor').style.display = 'none';
     document.getElementById('estado').style.display = 'block';
-    document.getElementById('estado').innerHTML =
-      '<span class="spinner"></span> Cargando datos…';
+    document.getElementById('estado').innerHTML = '<span class="spinner"></span> Cargando datos…';
 
     try {
-      const res  = await fetch('/api/wind');
+      const res = await fetch('/api/wind');
       const data = await res.json();
 
-      if (!res.ok || data.error) { mostrarError(data.error || `Error ${res.status}`); return; }
-      if (!Array.isArray(data) || data.length === 0) { mostrarError('Sin datos.'); return; }
+      if (!res.ok || data.error) {
+        mostrarError(data.error || `Error ${res.status}`);
+        return;
+      }
+
+      if (!Array.isArray(data) || data.length === 0) {
+        mostrarError('Sin datos disponibles.');
+        return;
+      }
 
       document.getElementById('tabla').innerHTML = buildTable(data);
-      document.getElementById('estado').style.display   = 'none';
+      document.getElementById('estado').style.display = 'none';
       document.getElementById('contenedor').style.display = 'block';
-      document.getElementById('update-time').textContent =
-        'Act. ' + new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
       setTimeout(() => {
         const nowCol = document.querySelector('.now-col');
@@ -221,7 +282,8 @@
       }, 300);
 
     } catch (e) {
-      mostrarError('Sin conexión.');
+      mostrarError('Sin conexión o error de servidor.');
+      console.error(e);
     }
   }
 
