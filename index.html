@@ -124,34 +124,34 @@
 </div>
 
 <script>
-  /* VIENTO: negro(0) → celeste → verde claro → verde → amarillo → naranja → rojo → violeta */
+  /* VIENTO: blanco(0) → celeste → verde claro → verde → amarillo → naranja → rojo → violeta */
   function windBg(v) {
-    if (v === 0)  return ['#000000', '#ffffff'];
-    if (v < 10)  return ['#ccffff', '#000000'];
-    if (v < 20)  return ['#aaddaa', '#000000'];
-    if (v < 30)  return ['#88cc44', '#000000'];
-    if (v < 40)  return ['#ffee44', '#000000'];
-    if (v < 50)  return ['#ffaa00', '#000000'];
-    if (v < 60)  return ['#ff5500', '#ffffff'];
-    if (v < 70)  return ['#cc0000', '#ffffff'];
-    return              ['#880088', '#ffffff'];
+    if (v === 0)  return ['#ffffff', '#000000']; // blanco, letras negras
+    if (v < 10)   return ['#ccffff', '#000000']; // celeste muy claro
+    if (v < 20)   return ['#aaddaa', '#000000']; // verde claro
+    if (v < 30)   return ['#88cc44', '#000000']; // verde medio
+    if (v < 40)   return ['#ffee44', '#000000']; // amarillo — letras negras
+    if (v < 50)   return ['#ffaa00', '#000000']; // naranja — letras negras
+    if (v < 60)   return ['#ff5500', '#ffffff']; // naranja rojo
+    if (v < 70)   return ['#cc0000', '#ffffff']; // rojo
+    return              ['#880088', '#ffffff']; // violeta
   }
 
-  /* NUBES: negro(0%) → gris claro(1-30%) → gris medio(31-60%) → gris oscuro(61-100%) */
+  /* NUBES: blanco(0%) → gris claro(1-30%) → gris medio(31-60%) → gris oscuro(61-100%) */
   function nubeBg(v) {
-    if (v === 0)  return ['#000000', '#ffffff'];
-    if (v <= 30)  return ['#cccccc', '#000000'];
-    if (v <= 60)  return ['#888888', '#ffffff'];
-    return              ['#444444', '#ffffff'];
+    if (v === 0)  return ['#ffffff', '#000000']; // blanco, letras negras
+    if (v <= 30)  return ['#cccccc', '#000000']; // gris claro, letras negras
+    if (v <= 60)  return ['#888888', '#ffffff']; // gris medio, letras blancas
+    return              ['#444444', '#ffffff']; // gris oscuro, letras blancas
   }
 
-  /* LLUVIA: negro(0) → celeste claro → azul medio → azul vivo → azul muy oscuro */
+  /* LLUVIA: blanco(0) → celeste claro → azul medio → azul vivo → azul muy oscuro */
   function lluviaBg(v) {
-    if (v === 0)   return ['#000000', '#ffffff'];
-    if (v <= 0.5)  return ['#aaddff', '#000000'];
-    if (v <= 2)    return ['#4488cc', '#ffffff'];
-    if (v <= 5)    return ['#1155aa', '#ffffff'];
-    return               ['#002266', '#ffffff'];
+    if (v === 0)   return ['#ffffff', '#000000']; // blanco, letras negras
+    if (v <= 0.5)  return ['#aaddff', '#000000']; // celeste claro, letras negras
+    if (v <= 2)    return ['#4488cc', '#ffffff']; // azul medio
+    if (v <= 5)    return ['#1155aa', '#ffffff']; // azul vivo
+    return               ['#002266', '#ffffff']; // azul muy oscuro
   }
 
   /* TEMPERATURA: azul oscuro → azul → celeste → amarillo → naranja → rojo */
@@ -159,25 +159,22 @@
     if (v <= 0)   return ['#003399', '#ffffff'];
     if (v <= 8)   return ['#3366cc', '#ffffff'];
     if (v <= 12)  return ['#66aaff', '#ffffff'];
-    if (v <= 17)  return ['#ffee44', '#ffffff'];
-    if (v <= 25)  return ['#ff8800', '#ffffff'];
-    return              ['#cc2200', '#ffffff'];
+    if (v <= 17)  return ['#ffee44', '#000000']; // amarillo — letras negras
+    if (v <= 25)  return ['#ff8800', '#000000']; // naranja — letras negras
+    return              ['#cc2200', '#ffffff']; // rojo
   }
 
   function buildTable(data) {
     if (!data || data.length === 0) return '';
 
-    // Hora actual en Madrid redondeada hacia abajo (floor)
     const nowMadrid = new Date().toLocaleString('en-US', { timeZone: 'Europe/Madrid' });
     const nowHour = new Date(nowMadrid).getHours();
 
-    // primer índice cuya hora === hora actual
     let nowIdx = 0;
     for (let i = 0; i < data.length; i++) {
       if (data[i].hora === nowHour) { nowIdx = i; break; }
     }
 
-    // cambio de día
     let dayChangeIdx = -1;
     for (let i = 1; i < data.length; i++) {
       if (data[i].dia !== data[i-1].dia) { dayChangeIdx = i; break; }
