@@ -208,13 +208,8 @@
     return { h, label: t };
   }
 
-  function horaCell(d, isNow, sep) {
+  function horaCell(d, sep) {
     const sepStyle = sep ? 'border-left:3px solid #4a70a0;' : '';
-
-    if (isNow) {
-      const txt = String(d.hora).padStart(2,'0');
-      return `<td style="background:#2a2a00;color:#ffee44;font-weight:900;${sepStyle}">${txt}</td>`;
-    }
 
     const sr = parseSun(d.sunrise);
     const ss = parseSun(d.sunset);
@@ -283,7 +278,7 @@
     };
 
     data.forEach((d, i) => {
-      const isNow = i === nowIdx;
+      
       const sep   = isDayStart[i];
       const sepStyle = sep ? 'border-left:3px solid #4a70a0;' : '';
       const dow   = dowFromKey(d.dateKey);
@@ -298,7 +293,7 @@
       const [nbBg, nbFg] = nubeBg(d.nub_baja);
 
       rows.fecha  += `<td class="r-date" style="${sepStyle}">${abr}</td>`;
-      rows.hora   += horaCell(d, isNow, sep);
+      rows.hora   += horaCell(d, sep);
       rows.clima  += `<td class="r-clima" style="${sepStyle}">${climaEmoji(d)}</td>`;
       rows.lluvia += `<td style="background:${lBg};color:${lFg};${sepStyle}">${d.lluvia}</td>`;
       rows.temp   += `<td style="background:${tBg};color:${tFg};${sepStyle}">${d.temp}°</td>`;
