@@ -364,13 +364,7 @@
   cargar();
   setInterval(cargar, 10 * 60 * 1000);
 
-  // Redirigir rueda del Apple Watch al scroll vertical del contenedor
-  document.addEventListener('wheel', (e) => {
-    const cont = document.getElementById('contenedor');
-    if (!cont) return;
-    e.preventDefault();
-    cont.scrollTop += e.deltaY;
-  }, { passive: false });
+
 </script>
 </body>
 </html>
