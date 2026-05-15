@@ -21,8 +21,6 @@
       color: #ffffff;
       font-family: var(--font);
       font-size: 20px;
-      min-height: 100dvh;
-      overflow: hidden; /* outer body no scroll */
     }
 
     #estado {
@@ -70,62 +68,40 @@
     }
 
     /*
-      Layout:
-      - #wrapper: full viewport, overflow hidden
-      - #top-rows: sticky top section (fecha + hora rows), overflow-x hidden (scrolled by JS)
-      - #body-scroll: vertically scrollable, horizontally scrollable
+      Single scrollable container.
+      Horizontal scroll on the whole page.
+      Vertical scroll on the whole page.
+      Sticky rows use position:sticky + top.
+      Sticky label column uses position:sticky + left.
     */
-
-    #wrapper {
-      display: flex;
-      flex-direction: column;
-      height: 100dvh;
-      overflow: hidden;
-    }
-
-    /* Top sticky area: contains the two fixed rows */
-    #top-rows {
-      flex-shrink: 0;
-      overflow: hidden; /* JS will sync scrollLeft */
-      border-bottom: 2px solid #333344;
-    }
-
-    #top-table {
-      border-collapse: collapse;
-      white-space: nowrap;
-    }
-
-    /* Body scroll area */
-    #body-scroll {
-      flex: 1;
+    #contenedor {
       overflow: auto;
       -webkit-overflow-scrolling: touch;
+      width: 100vw;
+      height: 100dvh;
     }
 
-    #body-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
-    #body-scroll::-webkit-scrollbar-track { background: var(--bg); }
-    #body-scroll::-webkit-scrollbar-thumb { background: #1e1e2a; border-radius: 2px; }
+    #contenedor::-webkit-scrollbar { width: 0; height: 0; }
 
-    #body-table {
+    table {
       border-collapse: collapse;
       white-space: nowrap;
     }
 
-    /* Shared cell styles */
-    .top-table td,
-    #body-table td {
+    td {
       padding: 8px 14px;
       text-align: center;
       border-bottom: 1px solid var(--border);
       vertical-align: middle;
       font-size: 20px;
+      color: #ffffff;
     }
 
-    /* Sticky label column */
+    /* Sticky label column — always visible on left */
     .label {
       position: sticky;
       left: 0;
-      z-index: 10;
+      z-index: 20;
       background: var(--label-bg);
       font-weight: 600;
       color: #ffffff;
@@ -137,129 +113,138 @@
       min-width: 100px;
     }
 
-    /* Day row */
-    .r-date { background: #111118; color: #ffffff; font-weight: 700; font-size: 18px; }
+    /* Sticky top rows */
+    .sticky-row td {
+      position: sticky;
+      top: 0;
+      z-index: 15;
+    }
 
-    /* Hora: three variants set inline */
+    /* The label cell in a sticky row needs higher z-index (overlap corner) */
+    .sticky-row .label {
+      z-index: 25;
+    }
+
+    /* Offset second sticky row below first */
+    .sticky-row-2 td {
+      position: sticky;
+      top: 37px; /* height of first row approx */
+      z-index: 14;
+    }
+
+    .sticky-row-2 .label {
+      z-index: 24;
+    }
+
+    /* Date row */
+    .r-date {
+      background: #111118;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 18px;
+    }
 
     /* Clima row */
     .r-clima { background: #000000; font-size: 18px; }
 
     /* Day separator */
-    .day-sep { border-left: 3px solid #4a70a0 !important; }
-
-    /* Now highlight */
-    .now-col {
-      background: #2a2a00 !important;
-      color: #ffee44 !important;
-      font-weight: 900 !important;
-    }
+    .day-sep { border-left: 3px solid #4a70a0; }
   </style>
 </head>
 <body>
 
 <div id="estado"><span class="spinner"></span> Cargando datos…</div>
 
-<div id="wrapper" style="display:none">
-  <!-- Fixed top rows: fecha + hora -->
-  <div id="top-rows">
-    <table id="top-table"></table>
-  </div>
-  <!-- Scrollable body rows -->
-  <div id="body-scroll">
-    <table id="body-table"></table>
-  </div>
+<div id="contenedor" style="display:none">
+  <table id="tabla"></table>
 </div>
 
 <script>
-  /* ── Day abbreviations ── */
   const DIA_ABR = ['DO','LU','MA','MI','JU','VI','SA'];
 
-  /* ── Color functions ── */
+  /* ── Color helpers ── */
   function windBg(v) {
-    if (v === 0)  return ['#ffffff', '#000000'];
-    if (v < 10)   return ['#ccffff', '#000000'];
-    if (v < 20)   return ['#aaddaa', '#000000'];
-    if (v < 30)   return ['#88cc44', '#000000'];
-    if (v < 40)   return ['#ffee44', '#000000'];
-    if (v < 50)   return ['#ffaa00', '#000000'];
-    if (v < 60)   return ['#ff5500', '#ffffff'];
-    if (v < 70)   return ['#cc0000', '#ffffff'];
-    return              ['#880088', '#ffffff'];
+    if (v === 0)  return ['#ffffff','#000000'];
+    if (v < 10)   return ['#ccffff','#000000'];
+    if (v < 20)   return ['#aaddaa','#000000'];
+    if (v < 30)   return ['#88cc44','#000000'];
+    if (v < 40)   return ['#ffee44','#000000'];
+    if (v < 50)   return ['#ffaa00','#000000'];
+    if (v < 60)   return ['#ff5500','#ffffff'];
+    if (v < 70)   return ['#cc0000','#ffffff'];
+    return              ['#880088','#ffffff'];
   }
 
   function nubeBg(v) {
-    if (v === 0)  return ['#ffffff', '#000000'];
-    if (v <= 30)  return ['#cccccc', '#000000'];
-    if (v <= 60)  return ['#888888', '#ffffff'];
-    return              ['#444444', '#ffffff'];
+    if (v === 0)  return ['#ffffff','#000000'];
+    if (v <= 30)  return ['#cccccc','#000000'];
+    if (v <= 60)  return ['#888888','#ffffff'];
+    return              ['#444444','#ffffff'];
   }
 
   function lluviaBg(v) {
-    if (v === 0)   return ['#ffffff', '#000000'];
-    if (v <= 0.5)  return ['#aaddff', '#000000'];
-    if (v <= 2)    return ['#4488cc', '#ffffff'];
-    if (v <= 5)    return ['#1155aa', '#ffffff'];
-    return               ['#002266', '#ffffff'];
+    if (v === 0)   return ['#ffffff','#000000'];
+    if (v <= 0.5)  return ['#aaddff','#000000'];
+    if (v <= 2)    return ['#4488cc','#ffffff'];
+    if (v <= 5)    return ['#1155aa','#ffffff'];
+    return               ['#002266','#ffffff'];
   }
 
   function tempBg(v) {
-    if (v <= 0)   return ['#003399', '#ffffff'];
-    if (v <= 8)   return ['#3366cc', '#ffffff'];
-    if (v <= 12)  return ['#66aaff', '#ffffff'];
-    if (v <= 17)  return ['#ffee44', '#000000'];
-    if (v <= 25)  return ['#ff8800', '#000000'];
-    return              ['#cc2200', '#ffffff'];
+    if (v <= 0)   return ['#003399','#ffffff'];
+    if (v <= 8)   return ['#3366cc','#ffffff'];
+    if (v <= 12)  return ['#66aaff','#ffffff'];
+    if (v <= 17)  return ['#ffee44','#000000'];
+    if (v <= 25)  return ['#ff8800','#000000'];
+    return              ['#cc2200','#ffffff'];
   }
 
-  /* ── Sunrise/sunset helpers ── */
-  // Parse "YYYY-MM-DDTHH:MM" → { h, m, label "HH:MM" }
+  /* ── Sun helpers ── */
+  // "YYYY-MM-DDTHH:MM" → { h: int, label: "HH:MM" }
   function parseSun(str) {
     if (!str) return null;
-    const parts = str.split('T');
-    if (parts.length < 2) return null;
-    const [hh, mm] = parts[1].split(':');
-    return { h: parseInt(hh), m: parseInt(mm), label: `${hh}:${mm}` };
+    const t = str.slice(11, 16); // "HH:MM"
+    const h = parseInt(str.slice(11, 13));
+    return { h, label: t };
   }
 
-  function horaStyle(hora, sunrise, sunset, isNow) {
-    if (isNow) return { bg: '#2a2a00', fg: '#ffee44', fw: '900', text: `${String(hora).padStart(2,'0')}` };
+  function horaCell(d, isNow, sep) {
+    const sepStyle = sep ? 'border-left:3px solid #4a70a0;' : '';
 
-    const sr = parseSun(sunrise);
-    const ss = parseSun(sunset);
-
-    // Is this the sunrise hour?
-    if (sr && hora === sr.h) {
-      return { bg: '#ff8800', fg: '#000000', fw: '700', text: sr.label };
-    }
-    // Is this the sunset hour?
-    if (ss && hora === ss.h) {
-      return { bg: '#ff8800', fg: '#000000', fw: '700', text: ss.label };
+    if (isNow) {
+      const txt = String(d.hora).padStart(2,'0');
+      return `<td style="background:#2a2a00;color:#ffee44;font-weight:900;${sepStyle}">${txt}</td>`;
     }
 
-    // Day or night?
-    const isDay = sr && ss && hora > sr.h && hora < ss.h;
+    const sr = parseSun(d.sunrise);
+    const ss = parseSun(d.sunset);
+
+    if (sr && d.hora === sr.h) {
+      return `<td style="background:#ff8800;color:#000000;font-weight:700;${sepStyle}">${sr.label}</td>`;
+    }
+    if (ss && d.hora === ss.h) {
+      return `<td style="background:#ff8800;color:#000000;font-weight:700;${sepStyle}">${ss.label}</td>`;
+    }
+
+    const isDay = sr && ss && d.hora > sr.h && d.hora < ss.h;
+    const txt   = String(d.hora).padStart(2,'0');
+
     if (isDay) {
-      return { bg: '#ffffff', fg: '#000000', fw: '600', text: `${String(hora).padStart(2,'0')}` };
+      return `<td style="background:#ffffff;color:#000000;font-weight:600;${sepStyle}">${txt}</td>`;
     }
-    // Night
-    return { bg: '#000000', fg: '#ffffff', fw: '400', text: `${String(hora).padStart(2,'0')}` };
+    return `<td style="background:#000000;color:#ffffff;font-weight:400;border:1px solid #222;${sepStyle}">${txt}</td>`;
   }
 
-  function climaEmoji(d, sunrise, sunset) {
+  function climaEmoji(d) {
     if (d.lluvia > 0) return '🌧️';
     if (d.nub_alta > 0 || d.nub_media > 0 || d.nub_baja > 0) return '☁️';
-    // clear — day or night?
-    const sr = parseSun(sunrise);
-    const ss = parseSun(sunset);
+    const sr = parseSun(d.sunrise);
+    const ss = parseSun(d.sunset);
     const isDay = sr && ss && d.hora > sr.h && d.hora < ss.h;
     return isDay ? '☀️' : '🌙';
   }
 
-  /* ── Build tables ── */
-  function buildTables(data) {
-    if (!data || data.length === 0) return;
-
+  function buildTable(data) {
     const nowMadrid = new Date().toLocaleString('en-US', { timeZone: 'Europe/Madrid' });
     const nowHour   = new Date(nowMadrid).getHours();
 
@@ -268,13 +253,41 @@
       if (data[i].hora === nowHour) { nowIdx = i; break; }
     }
 
-    // Pre-compute per-column data
-    const cols = data.map((d, i) => {
-      const isNow  = i === nowIdx;
-      const sep    = (i > 0 && d.diaSemana !== data[i-1].diaSemana) ? ' day-sep' : '';
-      const abr    = DIA_ABR[d.diaSemana];
-      const hs     = horaStyle(d.hora, d.sunrise, d.sunset, isNow);
-      const emoji  = climaEmoji(d, d.sunrise, d.sunset);
+    // Compute day-of-week from dateKey "YYYY-MM-DD"
+    function dowFromKey(key) {
+      // new Date("YYYY-MM-DD") is UTC midnight — use split to avoid TZ offset
+      const [y, m, d] = key.split('-').map(Number);
+      return new Date(y, m - 1, d).getDay(); // 0=Sun
+    }
+
+    // Detect day changes
+    const isDayStart = data.map((d, i) => {
+      if (i === 0) return false;
+      return d.dateKey !== data[i-1].dateKey;
+    });
+
+    const label = txt => `<td class="label">${txt}</td>`;
+
+    // Build each row
+    const rows = {
+      fecha:  `<tr class="sticky-row">${label('Fecha')}`,
+      hora:   `<tr class="sticky-row-2">${label('Hora')}`,
+      clima:  `<tr>${label('Clima')}`,
+      lluvia: `<tr>${label('Lluvia')}`,
+      temp:   `<tr>${label('Temp')}`,
+      viento: `<tr>${label('Viento')}`,
+      rachas: `<tr>${label('Rachas')}`,
+      na:     `<tr>${label('Na %')}`,
+      nm:     `<tr>${label('Nm %')}`,
+      nb:     `<tr>${label('Nb %')}`,
+    };
+
+    data.forEach((d, i) => {
+      const isNow = i === nowIdx;
+      const sep   = isDayStart[i];
+      const sepStyle = sep ? 'border-left:3px solid #4a70a0;' : '';
+      const dow   = dowFromKey(d.dateKey);
+      const abr   = DIA_ABR[dow];
 
       const [wBg,  wFg]  = windBg(d.viento);
       const [gBg,  gFg]  = windBg(d.rafagas);
@@ -284,69 +297,39 @@
       const [nmBg, nmFg] = nubeBg(d.nub_media);
       const [nbBg, nbFg] = nubeBg(d.nub_baja);
 
-      return {
-        sep,
-        fecha:  `<td class="r-date${sep}">${abr}</td>`,
-        hora:   `<td style="background:${hs.bg};color:${hs.fg};font-weight:${hs.fw};${sep?'border-left:3px solid #4a70a0;':''}">${hs.text}</td>`,
-        clima:  `<td class="r-clima${sep}">${emoji}</td>`,
-        lluvia: `<td style="background:${lBg};color:${lFg};${sep?'border-left:3px solid #4a70a0;':''}">${d.lluvia}</td>`,
-        temp:   `<td style="background:${tBg};color:${tFg};${sep?'border-left:3px solid #4a70a0;':''}">${d.temp}°</td>`,
-        viento: `<td style="background:${wBg};color:${wFg};${sep?'border-left:3px solid #4a70a0;':''}">${d.viento}</td>`,
-        rachas: `<td style="background:${gBg};color:${gFg};${sep?'border-left:3px solid #4a70a0;':''}">${d.rafagas}</td>`,
-        na:     `<td style="background:${naBg};color:${naFg};${sep?'border-left:3px solid #4a70a0;':''}">${d.nub_alta}</td>`,
-        nm:     `<td style="background:${nmBg};color:${nmFg};${sep?'border-left:3px solid #4a70a0;':''}">${d.nub_media}</td>`,
-        nb:     `<td style="background:${nbBg};color:${nbFg};${sep?'border-left:3px solid #4a70a0;':''}">${d.nub_baja}</td>`,
-      };
+      rows.fecha  += `<td class="r-date" style="${sepStyle}">${abr}</td>`;
+      rows.hora   += horaCell(d, isNow, sep);
+      rows.clima  += `<td class="r-clima" style="${sepStyle}">${climaEmoji(d)}</td>`;
+      rows.lluvia += `<td style="background:${lBg};color:${lFg};${sepStyle}">${d.lluvia}</td>`;
+      rows.temp   += `<td style="background:${tBg};color:${tFg};${sepStyle}">${d.temp}°</td>`;
+      rows.viento += `<td style="background:${wBg};color:${wFg};${sepStyle}">${d.viento}</td>`;
+      rows.rachas += `<td style="background:${gBg};color:${gFg};${sepStyle}">${d.rafagas}</td>`;
+      rows.na     += `<td style="background:${naBg};color:${naFg};${sepStyle}">${d.nub_alta}</td>`;
+      rows.nm     += `<td style="background:${nmBg};color:${nmFg};${sepStyle}">${d.nub_media}</td>`;
+      rows.nb     += `<td style="background:${nbBg};color:${nbFg};${sepStyle}">${d.nub_baja}</td>`;
     });
 
-    const labelTd = (txt) => `<td class="label">${txt}</td>`;
+    Object.keys(rows).forEach(k => rows[k] += '</tr>');
 
-    // TOP table: fecha + hora
-    document.getElementById('top-table').innerHTML =
-      `<tr>${labelTd('Fecha')}${cols.map(c => c.fecha).join('')}</tr>` +
-      `<tr>${labelTd('Hora')}${cols.map(c => c.hora).join('')}</tr>`;
-
-    // BODY table: clima + rest
-    const bodyFilas = [
-      { label: 'Clima',  key: 'clima'  },
-      { label: 'Lluvia', key: 'lluvia' },
-      { label: 'Temp',   key: 'temp'   },
-      { label: 'Viento', key: 'viento' },
-      { label: 'Rachas', key: 'rachas' },
-      { label: 'Na %',   key: 'na'     },
-      { label: 'Nm %',   key: 'nm'     },
-      { label: 'Nb %',   key: 'nb'     },
-    ];
-
-    document.getElementById('body-table').innerHTML = bodyFilas.map(f =>
-      `<tr>${labelTd(f.label)}${cols.map(c => c[f.key]).join('')}</tr>`
-    ).join('');
-
-    // Sync horizontal scroll between top-rows and body-scroll
-    const bodyScroll = document.getElementById('body-scroll');
-    const topRows    = document.getElementById('top-rows');
-    const topTable   = document.getElementById('top-table');
-
-    bodyScroll.addEventListener('scroll', () => {
-      topTable.style.transform = `translateX(-${bodyScroll.scrollLeft}px)`;
-    }, { passive: true });
+    document.getElementById('tabla').innerHTML =
+      rows.fecha + rows.hora + rows.clima + rows.lluvia +
+      rows.temp + rows.viento + rows.rachas + rows.na + rows.nm + rows.nb;
 
     // Scroll to now column
     setTimeout(() => {
-      // Find nowIdx cell in body table — first data cell of first body row
-      const firstBodyRow = document.querySelector('#body-table tr');
-      if (firstBodyRow) {
-        const cells = firstBodyRow.querySelectorAll('td');
-        // cells[0] is label, cells[nowIdx+1] is the now column
-        const nowCell = cells[nowIdx + 1];
+      const cont = document.getElementById('contenedor');
+      const tbl  = document.getElementById('tabla');
+      const firstRow = tbl.querySelector('tr.sticky-row-2');
+      if (firstRow) {
+        const cells = firstRow.querySelectorAll('td');
+        const nowCell = cells[nowIdx + 1]; // +1 for label
         if (nowCell) {
-          const cellLeft   = nowCell.offsetLeft;
-          const cellWidth  = nowCell.offsetWidth;
-          const scrollW    = bodyScroll.clientWidth;
-          bodyScroll.scrollLeft = cellLeft - scrollW / 2 + cellWidth / 2;
+          const cellLeft  = nowCell.offsetLeft;
+          const cellWidth = nowCell.offsetWidth;
+          cont.scrollLeft = cellLeft - cont.clientWidth / 2 + cellWidth / 2;
         }
       }
-    }, 300);
+    }, 200);
   }
 
   function mostrarError(msg) {
@@ -357,8 +340,8 @@
   }
 
   async function cargar() {
-    document.getElementById('wrapper').style.display = 'none';
-    document.getElementById('estado').style.display  = 'block';
+    document.getElementById('contenedor').style.display = 'none';
+    document.getElementById('estado').style.display = 'block';
     document.getElementById('estado').innerHTML = '<span class="spinner"></span> Cargando datos…';
 
     try {
@@ -368,9 +351,9 @@
       if (!res.ok || data.error) { mostrarError(data.error || `Error ${res.status}`); return; }
       if (!Array.isArray(data) || data.length === 0) { mostrarError('Sin datos disponibles.'); return; }
 
-      buildTables(data);
+      buildTable(data);
       document.getElementById('estado').style.display  = 'none';
-      document.getElementById('wrapper').style.display = 'flex';
+      document.getElementById('contenedor').style.display = 'block';
 
     } catch (e) {
       mostrarError('Sin conexión o error de servidor.');
