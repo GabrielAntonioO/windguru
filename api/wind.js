@@ -12,7 +12,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Vigo: 42.24°N, -8.72°E
     const url =
       "https://api.open-meteo.com/v1/forecast" +
       "?latitude=42.24&longitude=-8.72" +
@@ -32,55 +31,47 @@ export default async function handler(req, res) {
 
     if (!h?.time) throw new Error("Respuesta inesperada de Open-Meteo");
 
-    // Build sunrise/sunset map keyed by date string "YYYY-MM-DD"
+    // Build sunrise/sunset map keyed by "YYYY-MM-DD"
     const sunMap = {};
     if (daily?.time) {
       daily.time.forEach((date, i) => {
         sunMap[date] = {
-          sunrise: daily.sunrise[i], // "2025-05-15T07:05"
-          sunset:  daily.sunset[i],  // "2025-05-15T20:59"
+          sunrise: daily.sunrise[i], // "YYYY-MM-DDTHH:MM"
+          sunset:  daily.sunset[i],
         };
       });
     }
 
-    // Hora actual en Vigo
+    // Current hour in Madrid
     const nowLocal = new Date().toLocaleString('en-US', { timeZone: 'Europe/Madrid' });
-    const nowHour  = new Date(nowLocal).getHours();
     const nowDate  = new Date(nowLocal).toDateString();
+    const nowHour  = new Date(nowLocal).getHours();
 
     const result = h.time.map((t, i) => {
-      const fecha  = new Date(t);
-      const viento = Math.round(h.wind_speed_10m?.[i] ?? 0);
-      const dateKey = t.slice(0, 10); // "YYYY-MM-DD"
-
-      let intensidad = 'suave';
-      if (viento >= 40) intensidad = 'muy_fuerte';
-      else if (viento >= 30) intensidad = 'fuerte';
-      else if (viento >= 20) intensidad = 'medio';
+      const dateKey = t.slice(0, 10);
+      const hora    = parseInt(t.slice(11, 13));
+      const viento  = Math.round(h.wind_speed_10m?.[i] ?? 0);
 
       return {
-        timestamp:  t,
-        hora:       fecha.getHours(),
-        dia:        fecha.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }),
-        diaSemana:  fecha.getDay(), // 0=domingo
+        timestamp: t,
+        dateKey,               // "YYYY-MM-DD" — used in frontend to compute day-of-week
+        hora,
         viento,
-        rafagas:    Math.round(h.wind_gusts_10m?.[i]      ?? 0),
-        dir:        Math.round(h.wind_direction_10m?.[i]  ?? 0),
-        temp:       Math.round(h.temperature_2m?.[i]      ?? 0),
-        nub_baja:   Math.round(h.cloud_cover_low?.[i]     ?? 0),
-        nub_media:  Math.round(h.cloud_cover_mid?.[i]     ?? 0),
-        nub_alta:   Math.round(h.cloud_cover_high?.[i]    ?? 0),
-        lluvia:     parseFloat((h.precipitation?.[i]      ?? 0).toFixed(1)),
-        intensidad,
-        sunrise:    sunMap[dateKey]?.sunrise ?? null, // "YYYY-MM-DDTHH:MM"
-        sunset:     sunMap[dateKey]?.sunset  ?? null,
+        rafagas:   Math.round(h.wind_gusts_10m?.[i]     ?? 0),
+        temp:      Math.round(h.temperature_2m?.[i]     ?? 0),
+        nub_baja:  Math.round(h.cloud_cover_low?.[i]    ?? 0),
+        nub_media: Math.round(h.cloud_cover_mid?.[i]    ?? 0),
+        nub_alta:  Math.round(h.cloud_cover_high?.[i]   ?? 0),
+        lluvia:    parseFloat((h.precipitation?.[i]     ?? 0).toFixed(1)),
+        sunrise:   sunMap[dateKey]?.sunrise ?? null,
+        sunset:    sunMap[dateKey]?.sunset  ?? null,
       };
     });
 
-    // Filtrar desde la hora actual
+    // Filter from current hour
     const startIdx = result.findIndex(d => {
       const f = new Date(d.timestamp);
-      return f.toDateString() === nowDate && f.getHours() >= nowHour;
+      return f.toDateString() === nowDate && d.hora >= nowHour;
     });
 
     const filtered = result.slice(startIdx >= 0 ? startIdx : 0, (startIdx >= 0 ? startIdx : 0) + 48);
