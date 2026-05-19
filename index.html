@@ -67,7 +67,6 @@
       font-size: 14px;
     }
 
-    /* Single container — free scroll in all directions */
     #contenedor {
       width: 100%;
       overflow-x: auto;
@@ -82,7 +81,7 @@
     }
 
     td {
-      padding: 8px 14px;
+      padding: 7px 14px;
       text-align: center;
       border-bottom: 1px solid var(--border);
       vertical-align: middle;
@@ -90,7 +89,6 @@
       color: #ffffff;
     }
 
-    /* Only the label column is sticky */
     .label {
       position: sticky;
       left: 0;
@@ -101,13 +99,14 @@
       font-size: 20px;
       letter-spacing: 0.05em;
       text-transform: uppercase;
-      padding: 8px 12px 8px 14px;
+      padding: 7px 12px 7px 14px;
       border-right: 1px solid var(--border);
       min-width: 100px;
     }
 
     .r-date  { background: #111118; color: #ffffff; font-weight: 700; font-size: 18px; }
     .r-clima { background: #000000; font-size: 18px; }
+    .r-blank { background: #000000; border-bottom: none; }
     .day-sep { border-left: 3px solid #4a70a0; }
   </style>
 </head>
@@ -122,7 +121,6 @@
 <script>
   const DIA_ABR = ['DO','LU','MA','MI','JU','VI','SA'];
 
-  /* ── Color helpers ── */
   function windBg(v) {
     if (v === 0)  return ['#ffffff','#000000'];
     if (v < 10)   return ['#ccffff','#000000'];
@@ -167,10 +165,9 @@
     return               ['#cc2200','#ffffff'];
   }
 
-  /* ── Sun helpers ── */
   function parseSun(str) {
     if (!str) return null;
-    const h = parseInt(str.slice(11, 13));
+    const h     = parseInt(str.slice(11, 13));
     const label = str.slice(11, 16);
     return { h, label };
   }
@@ -213,67 +210,69 @@
       i > 0 && d.dateKey !== data[i-1].dateKey
     );
 
-    const label = txt => `<td class="label">${txt}</td>`;
+    const label     = txt => `<td class="label">${txt}</td>`;
+    const labelBlank = () => `<td class="label" style="border-bottom:none;background:#000000;"></td>`;
 
-    const rows = {
-      fecha:  `<tr>${label('Fecha')}`,
-      hora:   `<tr>${label('Hora')}`,
-      clima:  `<tr>${label('Clima')}`,
-      lluvia: `<tr>${label('Lluvia')}`,
-      temp:   `<tr>${label('Temp')}`,
-      viento: `<tr>${label('Viento')}`,
-      rachas: `<tr>${label('Rachas')}`,
-      na:     `<tr>${label('Na %')}`,
-      nm:     `<tr>${label('Nm %')}`,
-      nb:     `<tr>${label('Nb %')}`,
-      e12:    `<tr>${label('12 km')}`,
-      e11:    `<tr>${label('11 km')}`,
-      e10:    `<tr>${label('10 km')}`,
-    };
+    // Helper to build a fecha row
+    function fechaRow(cls) {
+      let row = `<tr>${label('Fecha')}`;
+      data.forEach((d, i) => {
+        const sep = isDayStart[i];
+        const abr = DIA_ABR[dowFromKey(d.dateKey)];
+        row += `<td class="r-date" style="${sep ? 'border-left:3px solid #4a70a0;' : ''}">${abr}</td>`;
+      });
+      return row + '</tr>';
+    }
 
-    data.forEach((d, i) => {
-      const sep      = isDayStart[i];
-      const sepStyle = sep ? 'border-left:3px solid #4a70a0;' : '';
-      const abr      = DIA_ABR[dowFromKey(d.dateKey)];
+    // Helper to build a hora row
+    function horaRow() {
+      let row = `<tr>${label('Hora')}`;
+      data.forEach((d, i) => { row += horaCell(d, isDayStart[i]); });
+      return row + '</tr>';
+    }
 
-      const [wBg,  wFg]  = windBg(d.viento);
-      const [gBg,  gFg]  = windBg(d.rafagas);
-      const [tBg,  tFg]  = tempBg(d.temp);
-      const [lBg,  lFg]  = lluviaBg(d.lluvia);
-      const [naBg, naFg] = nubeBg(d.nub_alta);
-      const [nmBg, nmFg] = nubeBg(d.nub_media);
-      const [nbBg, nbFg] = nubeBg(d.nub_baja);
-      const [e12Bg, e12Fg] = estelasBg(d.e12);
-      const [e11Bg, e11Fg] = estelasBg(d.e11);
-      const [e10Bg, e10Fg] = estelasBg(d.e10);
+    // Blank row
+    function blankRow() {
+      let row = `<tr>${labelBlank()}`;
+      data.forEach(() => { row += `<td class="r-blank"></td>`; });
+      return row + '</tr>';
+    }
 
-      rows.fecha  += `<td class="r-date" style="${sepStyle}">${abr}</td>`;
-      rows.hora   += horaCell(d, sep);
-      rows.clima  += `<td class="r-clima" style="${sepStyle}">${climaEmoji(d)}</td>`;
-      rows.lluvia += `<td style="background:${lBg};color:${lFg};${sepStyle}">${d.lluvia}</td>`;
-      rows.temp   += `<td style="background:${tBg};color:${tFg};${sepStyle}">${d.temp}°</td>`;
-      rows.viento += `<td style="background:${wBg};color:${wFg};${sepStyle}">${d.viento}</td>`;
-      rows.rachas += `<td style="background:${gBg};color:${gFg};${sepStyle}">${d.rafagas}</td>`;
-      rows.na     += `<td style="background:${naBg};color:${naFg};${sepStyle}">${d.nub_alta}</td>`;
-      rows.nm     += `<td style="background:${nmBg};color:${nmFg};${sepStyle}">${d.nub_media}</td>`;
-      rows.nb     += `<td style="background:${nbBg};color:${nbFg};${sepStyle}">${d.nub_baja}</td>`;
-      rows.e12    += `<td style="background:${e12Bg};color:${e12Fg};${sepStyle}">${d.e12}%</td>`;
-      rows.e11    += `<td style="background:${e11Bg};color:${e11Fg};${sepStyle}">${d.e11}%</td>`;
-      rows.e10    += `<td style="background:${e10Bg};color:${e10Fg};${sepStyle}">${d.e10}%</td>`;
-    });
-
-    Object.keys(rows).forEach(k => rows[k] += '</tr>');
+    // Data rows builder
+    function dataRow(lbl, fn) {
+      let row = `<tr>${label(lbl)}`;
+      data.forEach((d, i) => {
+        const sep = isDayStart[i];
+        const sepStyle = sep ? 'border-left:3px solid #4a70a0;' : '';
+        const [bg, fg, val] = fn(d);
+        row += `<td style="background:${bg};color:${fg};${sepStyle}">${val}</td>`;
+      });
+      return row + '</tr>';
+    }
 
     document.getElementById('tabla').innerHTML =
-      rows.fecha + rows.hora + rows.clima + rows.lluvia +
-      rows.temp + rows.viento + rows.rachas +
-      rows.na + rows.nm + rows.nb +
-      rows.e12 + rows.e11 + rows.e10;
+      // ── SECTION 1: climate ──
+      fechaRow() +
+      horaRow() +
+      dataRow('Clima',  d => ['#000000', '#ffffff', climaEmoji(d)]) +
+      dataRow('Lluvia', d => { const [bg,fg] = lluviaBg(d.lluvia);  return [bg, fg, d.lluvia]; }) +
+      dataRow('Temp',   d => { const [bg,fg] = tempBg(d.temp);      return [bg, fg, d.temp+'°']; }) +
+      dataRow('Viento', d => { const [bg,fg] = windBg(d.viento);    return [bg, fg, d.viento]; }) +
+      dataRow('Rachas', d => { const [bg,fg] = windBg(d.rafagas);   return [bg, fg, d.rafagas]; }) +
 
-    // Scroll to first column
-    setTimeout(() => {
-      document.getElementById('contenedor').scrollLeft = 0;
-    }, 100);
+      // ── 2 blank rows ──
+      blankRow() +
+      blankRow() +
+
+      // ── SECTION 2: nubes + estelas ──
+      fechaRow() +
+      horaRow() +
+      dataRow('Na %',   d => { const [bg,fg] = nubeBg(d.nub_alta);  return [bg, fg, d.nub_alta]; }) +
+      dataRow('Nm %',   d => { const [bg,fg] = nubeBg(d.nub_media); return [bg, fg, d.nub_media]; }) +
+      dataRow('Nb %',   d => { const [bg,fg] = nubeBg(d.nub_baja);  return [bg, fg, d.nub_baja]; }) +
+      dataRow('12 km',  d => { const [bg,fg] = estelasBg(d.e12);    return [bg, fg, d.e12+'%']; }) +
+      dataRow('11 km',  d => { const [bg,fg] = estelasBg(d.e11);    return [bg, fg, d.e11+'%']; }) +
+      dataRow('10 km',  d => { const [bg,fg] = estelasBg(d.e10);    return [bg, fg, d.e10+'%']; });
   }
 
   function mostrarError(msg) {
