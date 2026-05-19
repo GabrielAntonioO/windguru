@@ -2,6 +2,24 @@ let cache = null;
 let cacheTime = 0;
 const TTL = 10 * 60 * 1000;
 
+// Convert RH over water → RHi (over ice) using Magnus formula
+function toRHi(RHw, T_C) {
+  const ew = 6.1078 * Math.exp(17.269 * T_C / (T_C + 237.29));
+  const ei = 6.1078 * Math.exp(21.875 * T_C / (T_C + 265.5));
+  return (RHw / 100) * (ew / ei) * 100;
+}
+
+// CPI → percentage (Schumann 1996, 95% threshold for ERA5 dry bias)
+function contrailPct(T, RHw) {
+  const RHi = toRHi(RHw, T);
+  if (T > -40) return 0;
+  const ts = T <= -50 ? 3 : T <= -45 ? 2 : 1;
+  const rs = RHi >= 110 ? 4 : RHi >= 100 ? 3 : RHi >= 95 ? 2 : RHi >= 90 ? 1 : 0;
+  const cpi = ts + rs;
+  const map = [0, 15, 30, 50, 65, 80, 90, 100];
+  return map[Math.min(cpi, 7)];
+}
+
 export default async function handler(req, res) {
   const now = Date.now();
 
@@ -17,6 +35,8 @@ export default async function handler(req, res) {
       "?latitude=42.24&longitude=-8.72" +
       "&hourly=wind_speed_10m,wind_gusts_10m,wind_direction_10m" +
       ",temperature_2m,cloud_cover_low,cloud_cover_mid,cloud_cover_high,precipitation" +
+      ",temperature_200hPa,temperature_225hPa,temperature_275hPa" +
+      ",relative_humidity_200hPa,relative_humidity_225hPa,relative_humidity_275hPa" +
       "&daily=sunrise,sunset" +
       "&wind_speed_unit=kmh" +
       "&timezone=Europe%2FMadrid" +
@@ -31,18 +51,17 @@ export default async function handler(req, res) {
 
     if (!h?.time) throw new Error("Respuesta inesperada de Open-Meteo");
 
-    // Build sunrise/sunset map keyed by "YYYY-MM-DD"
+    // Sunrise/sunset map
     const sunMap = {};
     if (daily?.time) {
       daily.time.forEach((date, i) => {
         sunMap[date] = {
-          sunrise: daily.sunrise[i], // "YYYY-MM-DDTHH:MM"
+          sunrise: daily.sunrise[i],
           sunset:  daily.sunset[i],
         };
       });
     }
 
-    // Current hour in Madrid
     const nowLocal = new Date().toLocaleString('en-US', { timeZone: 'Europe/Madrid' });
     const nowDate  = new Date(nowLocal).toDateString();
     const nowHour  = new Date(nowLocal).getHours();
@@ -54,7 +73,7 @@ export default async function handler(req, res) {
 
       return {
         timestamp: t,
-        dateKey,               // "YYYY-MM-DD" — used in frontend to compute day-of-week
+        dateKey,
         hora,
         viento,
         rafagas:   Math.round(h.wind_gusts_10m?.[i]     ?? 0),
@@ -65,6 +84,9 @@ export default async function handler(req, res) {
         lluvia:    parseFloat((h.precipitation?.[i]     ?? 0).toFixed(1)),
         sunrise:   sunMap[dateKey]?.sunrise ?? null,
         sunset:    sunMap[dateKey]?.sunset  ?? null,
+        e12: contrailPct(h.temperature_200hPa?.[i] ?? 0, h.relative_humidity_200hPa?.[i] ?? 0),
+        e11: contrailPct(h.temperature_225hPa?.[i] ?? 0, h.relative_humidity_225hPa?.[i] ?? 0),
+        e10: contrailPct(h.temperature_275hPa?.[i] ?? 0, h.relative_humidity_275hPa?.[i] ?? 0),
       };
     });
 
