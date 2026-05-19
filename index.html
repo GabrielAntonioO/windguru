@@ -14,11 +14,6 @@
       --font:     'SF Mono', 'Fira Code', 'Menlo', monospace;
     }
 
-    html, body {
-      height: 100%;
-      overflow: hidden;
-    }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
@@ -72,21 +67,14 @@
       font-size: 14px;
     }
 
-    /*
-      Single scrollable container.
-      Horizontal scroll on the whole page.
-      Vertical scroll on the whole page.
-      Sticky rows use position:sticky + top.
-      Sticky label column uses position:sticky + left.
-    */
+    /* Single container — free scroll in all directions */
     #contenedor {
-      overflow: auto;
+      width: 100%;
+      overflow-x: auto;
       -webkit-overflow-scrolling: touch;
-      width: 100vw;
-      height: 100dvh;
     }
 
-    #contenedor::-webkit-scrollbar { width: 0; height: 0; }
+    #contenedor::-webkit-scrollbar { height: 0; width: 0; }
 
     table {
       border-collapse: collapse;
@@ -102,11 +90,11 @@
       color: #ffffff;
     }
 
-    /* Sticky label column — always visible on left */
+    /* Only the label column is sticky */
     .label {
       position: sticky;
       left: 0;
-      z-index: 20;
+      z-index: 10;
       background: var(--label-bg);
       font-weight: 600;
       color: #ffffff;
@@ -118,41 +106,8 @@
       min-width: 100px;
     }
 
-    /* Sticky top rows */
-    .sticky-row td {
-      position: sticky;
-      top: 0;
-      z-index: 15;
-    }
-
-    /* The label cell in a sticky row needs higher z-index (overlap corner) */
-    .sticky-row .label {
-      z-index: 25;
-    }
-
-    /* Offset second sticky row below first */
-    .sticky-row-2 td {
-      position: sticky;
-      top: 37px; /* height of first row approx */
-      z-index: 14;
-    }
-
-    .sticky-row-2 .label {
-      z-index: 24;
-    }
-
-    /* Date row */
-    .r-date {
-      background: #111118;
-      color: #ffffff;
-      font-weight: 700;
-      font-size: 18px;
-    }
-
-    /* Clima row */
+    .r-date  { background: #111118; color: #ffffff; font-weight: 700; font-size: 18px; }
     .r-clima { background: #000000; font-size: 18px; }
-
-    /* Day separator */
     .day-sep { border-left: 3px solid #4a70a0; }
   </style>
 </head>
@@ -204,74 +159,65 @@
     return              ['#cc2200','#ffffff'];
   }
 
+  function estelasBg(v) {
+    if (v === 0)   return ['#ffffff','#000000'];
+    if (v <= 30)   return ['#aaddaa','#000000'];
+    if (v <= 50)   return ['#ffee44','#000000'];
+    if (v <= 80)   return ['#ff8800','#000000'];
+    return               ['#cc2200','#ffffff'];
+  }
+
   /* ── Sun helpers ── */
-  // "YYYY-MM-DDTHH:MM" → { h: int, label: "HH:MM" }
   function parseSun(str) {
     if (!str) return null;
-    const t = str.slice(11, 16); // "HH:MM"
     const h = parseInt(str.slice(11, 13));
-    return { h, label: t };
+    const label = str.slice(11, 16);
+    return { h, label };
   }
 
   function horaCell(d, sep) {
     const sepStyle = sep ? 'border-left:3px solid #4a70a0;' : '';
-
     const sr = parseSun(d.sunrise);
     const ss = parseSun(d.sunset);
 
-    if (sr && d.hora === sr.h) {
+    if (sr && d.hora === sr.h)
       return `<td style="background:#ff8800;color:#000000;font-weight:700;${sepStyle}">${sr.label}</td>`;
-    }
-    if (ss && d.hora === ss.h) {
+    if (ss && d.hora === ss.h)
       return `<td style="background:#ff8800;color:#000000;font-weight:700;${sepStyle}">${ss.label}</td>`;
-    }
 
     const isDay = sr && ss && d.hora > sr.h && d.hora < ss.h;
     const txt   = String(d.hora).padStart(2,'0');
-
-    if (isDay) {
+    if (isDay)
       return `<td style="background:#ffffff;color:#000000;font-weight:600;${sepStyle}">${txt}</td>`;
-    }
-    return `<td style="background:#000000;color:#ffffff;font-weight:400;border:1px solid #222;${sepStyle}">${txt}</td>`;
+    return `<td style="background:#000000;color:#ffffff;border:1px solid #222;${sepStyle}">${txt}</td>`;
   }
 
   function climaEmoji(d) {
     if (d.lluvia > 0) return '💧';
-    if (d.nub_alta > 0 || d.nub_media > 0 || d.nub_baja > 0) return '☁️';
+    const efectiva = d.nub_baja * 1.0 + d.nub_media * 0.5 + d.nub_alta * 0.1;
+    if (efectiva > 60) return '☁️';
     const sr = parseSun(d.sunrise);
     const ss = parseSun(d.sunset);
     const isDay = sr && ss && d.hora > sr.h && d.hora < ss.h;
+    if (efectiva > 25) return '🌤️';
     return isDay ? '☀️' : '🌙';
   }
 
+  function dowFromKey(key) {
+    const [y, m, d] = key.split('-').map(Number);
+    return new Date(y, m - 1, d).getDay();
+  }
+
   function buildTable(data) {
-    const nowMadrid = new Date().toLocaleString('en-US', { timeZone: 'Europe/Madrid' });
-    const nowHour   = new Date(nowMadrid).getHours();
-
-    let nowIdx = 0;
-    for (let i = 0; i < data.length; i++) {
-      if (data[i].hora === nowHour) { nowIdx = i; break; }
-    }
-
-    // Compute day-of-week from dateKey "YYYY-MM-DD"
-    function dowFromKey(key) {
-      // new Date("YYYY-MM-DD") is UTC midnight — use split to avoid TZ offset
-      const [y, m, d] = key.split('-').map(Number);
-      return new Date(y, m - 1, d).getDay(); // 0=Sun
-    }
-
-    // Detect day changes
-    const isDayStart = data.map((d, i) => {
-      if (i === 0) return false;
-      return d.dateKey !== data[i-1].dateKey;
-    });
+    const isDayStart = data.map((d, i) =>
+      i > 0 && d.dateKey !== data[i-1].dateKey
+    );
 
     const label = txt => `<td class="label">${txt}</td>`;
 
-    // Build each row
     const rows = {
-      fecha:  `<tr class="sticky-row">${label('Fecha')}`,
-      hora:   `<tr class="sticky-row-2">${label('Hora')}`,
+      fecha:  `<tr>${label('Fecha')}`,
+      hora:   `<tr>${label('Hora')}`,
       clima:  `<tr>${label('Clima')}`,
       lluvia: `<tr>${label('Lluvia')}`,
       temp:   `<tr>${label('Temp')}`,
@@ -280,14 +226,15 @@
       na:     `<tr>${label('Na %')}`,
       nm:     `<tr>${label('Nm %')}`,
       nb:     `<tr>${label('Nb %')}`,
+      e12:    `<tr>${label('12 km')}`,
+      e11:    `<tr>${label('11 km')}`,
+      e10:    `<tr>${label('10 km')}`,
     };
 
     data.forEach((d, i) => {
-      
-      const sep   = isDayStart[i];
+      const sep      = isDayStart[i];
       const sepStyle = sep ? 'border-left:3px solid #4a70a0;' : '';
-      const dow   = dowFromKey(d.dateKey);
-      const abr   = DIA_ABR[dow];
+      const abr      = DIA_ABR[dowFromKey(d.dateKey)];
 
       const [wBg,  wFg]  = windBg(d.viento);
       const [gBg,  gFg]  = windBg(d.rafagas);
@@ -296,6 +243,9 @@
       const [naBg, naFg] = nubeBg(d.nub_alta);
       const [nmBg, nmFg] = nubeBg(d.nub_media);
       const [nbBg, nbFg] = nubeBg(d.nub_baja);
+      const [e12Bg, e12Fg] = estelasBg(d.e12);
+      const [e11Bg, e11Fg] = estelasBg(d.e11);
+      const [e10Bg, e10Fg] = estelasBg(d.e10);
 
       rows.fecha  += `<td class="r-date" style="${sepStyle}">${abr}</td>`;
       rows.hora   += horaCell(d, sep);
@@ -307,29 +257,23 @@
       rows.na     += `<td style="background:${naBg};color:${naFg};${sepStyle}">${d.nub_alta}</td>`;
       rows.nm     += `<td style="background:${nmBg};color:${nmFg};${sepStyle}">${d.nub_media}</td>`;
       rows.nb     += `<td style="background:${nbBg};color:${nbFg};${sepStyle}">${d.nub_baja}</td>`;
+      rows.e12    += `<td style="background:${e12Bg};color:${e12Fg};${sepStyle}">${d.e12}%</td>`;
+      rows.e11    += `<td style="background:${e11Bg};color:${e11Fg};${sepStyle}">${d.e11}%</td>`;
+      rows.e10    += `<td style="background:${e10Bg};color:${e10Fg};${sepStyle}">${d.e10}%</td>`;
     });
 
     Object.keys(rows).forEach(k => rows[k] += '</tr>');
 
     document.getElementById('tabla').innerHTML =
       rows.fecha + rows.hora + rows.clima + rows.lluvia +
-      rows.temp + rows.viento + rows.rachas + rows.na + rows.nm + rows.nb;
+      rows.temp + rows.viento + rows.rachas +
+      rows.na + rows.nm + rows.nb +
+      rows.e12 + rows.e11 + rows.e10;
 
-    // Scroll to now column
+    // Scroll to first column
     setTimeout(() => {
-      const cont = document.getElementById('contenedor');
-      const tbl  = document.getElementById('tabla');
-      const firstRow = tbl.querySelector('tr.sticky-row-2');
-      if (firstRow) {
-        const cells = firstRow.querySelectorAll('td');
-        const nowCell = cells[nowIdx + 1]; // +1 for label
-        if (nowCell) {
-          const cellLeft  = nowCell.offsetLeft;
-          const cellWidth = nowCell.offsetWidth;
-          cont.scrollLeft = cellLeft - cont.clientWidth / 2 + cellWidth / 2;
-        }
-      }
-    }, 200);
+      document.getElementById('contenedor').scrollLeft = 0;
+    }, 100);
   }
 
   function mostrarError(msg) {
@@ -363,8 +307,6 @@
 
   cargar();
   setInterval(cargar, 10 * 60 * 1000);
-
-
 </script>
 </body>
 </html>
