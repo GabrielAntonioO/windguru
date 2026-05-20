@@ -148,8 +148,16 @@
 
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
-        const lat  = pos.coords.latitude.toFixed(6);
-        const lon  = pos.coords.longitude.toFixed(6);
+        function toGDM(decimal, posDir, negDir) {
+          const dir = decimal >= 0 ? posDir : negDir;
+          const abs = Math.abs(decimal);
+          const deg = Math.floor(abs);
+          const min = ((abs - deg) * 60).toFixed(3);
+          return deg + '° ' + min + "' " + dir;
+        }
+
+        const lat  = toGDM(pos.coords.latitude,  'N', 'S');
+        const lon  = toGDM(pos.coords.longitude, 'E', 'O');
         const prec = Math.round(pos.coords.accuracy);
         const hora = new Date().toLocaleTimeString('es-ES', { timeZone: 'Europe/Madrid' });
 
