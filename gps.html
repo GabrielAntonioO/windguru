@@ -51,12 +51,13 @@
     .row-value.ok    { color: #88cc44; }
     .row-value.warn  { color: #ffee44; }
     .row-value.error { color: #ff5555; }
+    .row-value.muted { color: #888888; }
 
-    #btn {
+    .btn {
       display: block;
       width: 100%;
       padding: 12px;
-      margin-top: 20px;
+      margin-top: 12px;
       background: #1a1a2a;
       border: 1px solid #3a3a5a;
       border-radius: 6px;
@@ -67,7 +68,20 @@
       text-align: center;
     }
 
-    #btn:active { background: #2a2a4a; }
+    .btn:active { background: #2a2a4a; }
+    .btn.secondary { color: #888888; border-color: #2a2a2a; margin-top: 8px; }
+
+    .source-badge {
+      display: inline-block;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 8px;
+      vertical-align: middle;
+      font-weight: 400;
+    }
+    .badge-gps    { background: #1a3a1a; color: #88cc44; }
+    .badge-server { background: #1a1a3a; color: #8888ff; }
 
     .spinner {
       display: inline-block;
@@ -87,8 +101,18 @@
 <h1>📍 GPS Test</h1>
 
 <div class="row">
+  <div class="row-label">Fuente</div>
+  <div class="row-value" id="fuente">—</div>
+</div>
+
+<div class="row">
   <div class="row-label">Estado</div>
-  <div class="row-value" id="estado">Esperando…</div>
+  <div class="row-value" id="estado">Iniciando…</div>
+</div>
+
+<div class="row">
+  <div class="row-label">Lugar</div>
+  <div class="row-value" id="lugar">—</div>
 </div>
 
 <div class="row">
@@ -107,16 +131,12 @@
 </div>
 
 <div class="row">
-  <div class="row-label">Lugar aproximado</div>
-  <div class="row-value" id="lugar">—</div>
+  <div class="row-label">Última actualización</div>
+  <div class="row-value" id="updated">—</div>
 </div>
 
-<div class="row">
-  <div class="row-label">Hora de lectura</div>
-  <div class="row-value" id="hora">—</div>
-</div>
-
-<button id="btn" onclick="obtenerGPS()">↻ Obtener ubicación</button>
+<button class="btn" id="btn-gps" onclick="obtenerGPS()">📍 Actualizar con GPS</button>
+<button class="btn secondary" id="btn-server" onclick="consultarServidor()">☁️ Ver última guardada</button>
 
 <script>
   function set(id, val, cls) {
@@ -133,67 +153,90 @@
     return deg + '° ' + min + "' " + dir;
   }
 
-  async function reverseGeocode(lat, lon) {
+  function formatUpdated(iso) {
+    if (!iso) return 'nunca';
+    const d = new Date(iso);
+    return d.toLocaleString('es-ES', { timeZone: 'Europe/Madrid',
+      day: '2-digit', month: '2-digit',
+      hour: '2-digit', minute: '2-digit' });
+  }
+
+  function formatLugar(data) {
+    if (!data.barrio && !data.ciudad) return 'Desconocido';
+    if (data.barrio && data.ciudad) return `${data.barrio}, ${data.ciudad}`;
+    return data.ciudad || data.barrio;
+  }
+
+  function showData(data, source) {
+    const srcLabel = source === 'gps'
+      ? '<span class="source-badge badge-gps">GPS</span>'
+      : '<span class="source-badge badge-server">servidor</span>';
+
+    set('fuente', source === 'gps' ? '📱 Este dispositivo' : '☁️ Último guardado', source === 'gps' ? 'ok' : 'muted');
+    set('estado', '✓ OK', 'ok');
+    set('lugar',  formatLugar(data), 'ok');
+    set('lat',    toGDM(data.lat, 'N', 'S'), 'ok');
+    set('lon',    toGDM(data.lon, 'E', 'O'), 'ok');
+    set('prec',   data.precision ? data.precision + ' m' : '—', data.precision && data.precision < 100 ? 'ok' : 'warn');
+    set('updated', formatUpdated(data.updated));
+  }
+
+  // Read last saved location from server
+  async function consultarServidor() {
+    set('estado', '⏳ Consultando servidor…', 'warn');
     try {
-      // Use our own Vercel endpoint to avoid CORS issues
-      const r = await fetch(`/api/geo?lat=${lat}&lon=${lon}`);
+      const r = await fetch('/api/geo');
       const d = await r.json();
-      if (d.error) return '(error)';
-      return d.lugar + (d.pais ? ', ' + d.pais : '');
+      if (d.error) { set('estado', 'Error del servidor', 'error'); return; }
+      showData(d, 'server');
     } catch {
-      return '(sin conexión)';
+      set('estado', 'Sin conexión', 'error');
     }
   }
 
+  // Get GPS and save to server (iPhone only)
   function obtenerGPS() {
     if (!navigator.geolocation) {
-      set('estado', 'No soportado', 'error');
+      // Device can't get GPS → just read from server
+      consultarServidor();
       return;
     }
 
-    set('estado', '⏳ Buscando…', 'warn');
-    document.getElementById('btn').innerHTML = '<span class="spinner"></span> Buscando…';
-
-    // Options: try high accuracy first, fallback handled by browser
-    const options = {
-      enableHighAccuracy: true,
-      timeout: 15000,
-      maximumAge: 30000, // accept cached position up to 30s old — helps on Watch
-    };
+    set('estado', '⏳ Buscando GPS…', 'warn');
+    document.getElementById('btn-gps').innerHTML = '<span class="spinner"></span> Buscando…';
 
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
-        const latRaw = pos.coords.latitude;
-        const lonRaw = pos.coords.longitude;
-        const prec   = Math.round(pos.coords.accuracy);
-        const hora   = new Date().toLocaleTimeString('es-ES', { timeZone: 'Europe/Madrid' });
+        const latRaw  = pos.coords.latitude;
+        const lonRaw  = pos.coords.longitude;
+        const precRaw = Math.round(pos.coords.accuracy);
 
-        set('estado', '✓ OK', 'ok');
-        set('lat',    toGDM(latRaw, 'N', 'S'), 'ok');
-        set('lon',    toGDM(lonRaw, 'E', 'O'), 'ok');
-        set('prec',   prec + ' m', prec < 100 ? 'ok' : 'warn');
-        set('hora',   hora);
-        set('lugar',  '…buscando…');
+        set('estado', '⏳ Guardando…', 'warn');
+        document.getElementById('btn-gps').textContent = '📍 Actualizar con GPS';
 
-        document.getElementById('btn').textContent = '↻ Actualizar';
-
-        const lugar = await reverseGeocode(latRaw, lonRaw);
-        set('lugar', lugar, 'ok');
+        try {
+          const r = await fetch(`/api/geo?lat=${latRaw}&lon=${lonRaw}&precision=${precRaw}`);
+          const d = await r.json();
+          if (d.error) { set('estado', 'Error guardando', 'error'); return; }
+          showData(d, 'gps');
+        } catch {
+          set('estado', 'Error de red', 'error');
+        }
       },
       (err) => {
-        const msgs = {
-          1: 'Permiso denegado — activá ubicación en Ajustes → Safari',
-          2: 'Posición no disponible',
-          3: 'Tiempo agotado',
-        };
-        set('estado', msgs[err.code] || 'Error desconocido', 'error');
-        document.getElementById('btn').textContent = '↻ Reintentar';
+        document.getElementById('btn-gps').textContent = '📍 Actualizar con GPS';
+        if (err.code === 1) {
+          // Permission denied → fall back to server
+          consultarServidor();
+        } else {
+          set('estado', 'GPS no disponible', 'error');
+        }
       },
-      options
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
     );
   }
 
-  // Auto-start on load
+  // On load: try GPS first, fallback to server automatically
   obtenerGPS();
 </script>
 </body>
