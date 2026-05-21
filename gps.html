@@ -125,19 +125,27 @@
     el.className = 'row-value' + (cls ? ' ' + cls : '');
   }
 
+  function toGDM(decimal, posDir, negDir) {
+    const dir = decimal >= 0 ? posDir : negDir;
+    const abs = Math.abs(decimal);
+    const deg = Math.floor(abs);
+    const min = ((abs - deg) * 60).toFixed(3);
+    return deg + '° ' + min + "' " + dir;
+  }
+
   async function reverseGeocode(lat, lon) {
     try {
-      const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`;
-      const r = await fetch(url, { headers: { 'Accept-Language': 'es' } });
+      // Use our own Vercel endpoint to avoid CORS issues
+      const r = await fetch(`/api/geo?lat=${lat}&lon=${lon}`);
       const d = await r.json();
-      const a = d.address;
-      return a.city || a.town || a.village || a.municipality || a.county || '(desconocido)';
+      if (d.error) return '(error)';
+      return d.lugar + (d.pais ? ', ' + d.pais : '');
     } catch {
       return '(sin conexión)';
     }
   }
 
-  async function obtenerGPS() {
+  function obtenerGPS() {
     if (!navigator.geolocation) {
       set('estado', 'No soportado', 'error');
       return;
@@ -146,47 +154,42 @@
     set('estado', '⏳ Buscando…', 'warn');
     document.getElementById('btn').innerHTML = '<span class="spinner"></span> Buscando…';
 
+    // Options: try high accuracy first, fallback handled by browser
+    const options = {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 30000, // accept cached position up to 30s old — helps on Watch
+    };
+
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
-        function toGDM(decimal, posDir, negDir) {
-          const dir = decimal >= 0 ? posDir : negDir;
-          const abs = Math.abs(decimal);
-          const deg = Math.floor(abs);
-          const min = ((abs - deg) * 60).toFixed(3);
-          return deg + '° ' + min + "' " + dir;
-        }
-
-        const lat  = toGDM(pos.coords.latitude,  'N', 'S');
-        const lon  = toGDM(pos.coords.longitude, 'E', 'O');
-        const prec = Math.round(pos.coords.accuracy);
-        const hora = new Date().toLocaleTimeString('es-ES', { timeZone: 'Europe/Madrid' });
+        const latRaw = pos.coords.latitude;
+        const lonRaw = pos.coords.longitude;
+        const prec   = Math.round(pos.coords.accuracy);
+        const hora   = new Date().toLocaleTimeString('es-ES', { timeZone: 'Europe/Madrid' });
 
         set('estado', '✓ OK', 'ok');
-        set('lat',    lat,  'ok');
-        set('lon',    lon,  'ok');
+        set('lat',    toGDM(latRaw, 'N', 'S'), 'ok');
+        set('lon',    toGDM(lonRaw, 'E', 'O'), 'ok');
         set('prec',   prec + ' m', prec < 100 ? 'ok' : 'warn');
         set('hora',   hora);
         set('lugar',  '…buscando…');
 
         document.getElementById('btn').textContent = '↻ Actualizar';
 
-        const lugar = await reverseGeocode(lat, lon);
+        const lugar = await reverseGeocode(latRaw, lonRaw);
         set('lugar', lugar, 'ok');
       },
       (err) => {
         const msgs = {
-          1: 'Permiso denegado',
+          1: 'Permiso denegado — activá ubicación en Ajustes → Safari',
           2: 'Posición no disponible',
           3: 'Tiempo agotado',
         };
         set('estado', msgs[err.code] || 'Error desconocido', 'error');
         document.getElementById('btn').textContent = '↻ Reintentar';
       },
-      {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 0,
-      }
+      options
     );
   }
 
