@@ -104,7 +104,7 @@
       min-width: 100px;
     }
 
-    .r-date  { background: #111118; color: #ffffff; font-weight: 700; font-size: 18px; }
+    .r-date  { font-weight: 700; font-size: 18px; color: #000000; }
     .r-clima { background: #000000; font-size: 18px; }
     .r-blank { background: #000000; border-bottom: none; }
     .day-sep { border-left: 3px solid #4a70a0; }
@@ -120,6 +120,16 @@
 
 <script>
   const DIA_ABR = ['DO','LU','MA','MI','JU','VI','SA'];
+
+  // Alternating day backgrounds (light theme for date rows)
+  const DAY_COLORS = ['#e0e0e0', '#f0f0f0'];
+
+  function getDayBg(dateKey) {
+    // Count distinct days from epoch to determine even/odd
+    const d = new Date(dateKey);
+    const dayNum = Math.floor(d.getTime() / 86400000);
+    return DAY_COLORS[dayNum % 2];
+  }
 
   function windBg(v) {
     if (v === 0)  return ['#ffffff','#000000'];
@@ -149,12 +159,20 @@
   }
 
   function tempBg(v) {
-    if (v <= 0)   return ['#003399','#ffffff'];
-    if (v <= 8)   return ['#3366cc','#ffffff'];
-    if (v <= 12)  return ['#66aaff','#ffffff'];
-    if (v <= 17)  return ['#ffee44','#000000'];
-    if (v <= 25)  return ['#ff8800','#000000'];
-    return              ['#cc2200','#ffffff'];
+    if (v <= 2)   return ['#d0eeff','#000000'];
+    if (v <= 5)   return ['#b0d8f0','#000000'];
+    if (v <= 8)   return ['#80c0e8','#000000'];
+    if (v <= 10)  return ['#c8e8b0','#000000'];
+    if (v <= 13)  return ['#d8e870','#000000'];
+    if (v <= 16)  return ['#f0e040','#000000'];
+    if (v <= 19)  return ['#f8c030','#000000'];
+    if (v <= 22)  return ['#f89020','#000000'];
+    if (v <= 25)  return ['#f06010','#ffffff'];
+    if (v <= 28)  return ['#e83000','#ffffff'];
+    if (v <= 31)  return ['#cc0000','#ffffff'];
+    if (v <= 35)  return ['#aa0020','#ffffff'];
+    if (v <= 38)  return ['#cc0066','#ffffff'];
+    return              ['#ff00aa','#ffffff'];
   }
 
   function estelasBg(v) {
@@ -173,6 +191,7 @@
   }
 
   function horaCell(d, sep) {
+    const dayBg   = getDayBg(d.dateKey);
     const sepStyle = sep ? 'border-left:3px solid #4a70a0;' : '';
     const sr = parseSun(d.sunrise);
     const ss = parseSun(d.sunset);
@@ -185,7 +204,7 @@
     const isDay = sr && ss && d.hora > sr.h && d.hora < ss.h;
     const txt   = String(d.hora).padStart(2,'0');
     if (isDay)
-      return `<td style="background:#ffffff;color:#000000;font-weight:600;${sepStyle}">${txt}</td>`;
+      return `<td style="background:${dayBg};color:#000000;font-weight:600;${sepStyle}">${txt}</td>`;
     return `<td style="background:#000000;color:#ffffff;border:1px solid #222;${sepStyle}">${txt}</td>`;
   }
 
@@ -196,7 +215,7 @@
     const sr = parseSun(d.sunrise);
     const ss = parseSun(d.sunset);
     const isDay = sr && ss && d.hora > sr.h && d.hora < ss.h;
-    if (efectiva > 25) return '🌤️';
+    if (efectiva > 18) return '🌤️';
     return isDay ? '☀️' : '🌙';
   }
 
@@ -210,35 +229,32 @@
       i > 0 && d.dateKey !== data[i-1].dateKey
     );
 
-    const label     = txt => `<td class="label">${txt}</td>`;
-    const labelBlank = () => `<td class="label" style="border-bottom:none;background:#000000;"></td>`;
+    const label      = txt => `<td class="label">${txt}</td>`;
+    const labelBlank = ()  => `<td class="label" style="border-bottom:none;background:#000000;"></td>`;
 
-    // Helper to build a fecha row
-    function fechaRow(cls) {
+    function fechaRow() {
       let row = `<tr>${label('Fecha')}`;
       data.forEach((d, i) => {
-        const sep = isDayStart[i];
-        const abr = DIA_ABR[dowFromKey(d.dateKey)];
-        row += `<td class="r-date" style="${sep ? 'border-left:3px solid #4a70a0;' : ''}">${abr}</td>`;
+        const sep    = isDayStart[i];
+        const abr    = DIA_ABR[dowFromKey(d.dateKey)];
+        const dayBg  = getDayBg(d.dateKey);
+        row += `<td class="r-date" style="background:${dayBg};${sep ? 'border-left:3px solid #4a70a0;' : ''}">${abr}</td>`;
       });
       return row + '</tr>';
     }
 
-    // Helper to build a hora row
     function horaRow() {
       let row = `<tr>${label('Hora')}`;
       data.forEach((d, i) => { row += horaCell(d, isDayStart[i]); });
       return row + '</tr>';
     }
 
-    // Blank row
     function blankRow() {
       let row = `<tr>${labelBlank()}`;
       data.forEach(() => { row += `<td class="r-blank"></td>`; });
       return row + '</tr>';
     }
 
-    // Data rows builder
     function dataRow(lbl, fn) {
       let row = `<tr>${label(lbl)}`;
       data.forEach((d, i) => {
