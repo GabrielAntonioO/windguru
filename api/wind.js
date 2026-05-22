@@ -124,7 +124,24 @@ export default async function handler(req, res) {
     cache = filtered;
     cacheTime = now;
 
-    return res.status(200).json(filtered);
+    // Include location metadata for the title
+    const { lat: rLat, lon: rLon } = await getLocation();
+    // Re-read full location info for title
+    let locInfo = { ciudad: 'Vigo', barrio: null };
+    try {
+      const lr = await fetch(JSONBIN_URL + '/latest', { headers: { 'X-Master-Key': JSONBIN_API_KEY } });
+      if (lr.ok) { const ld = await lr.json(); locInfo = ld.record; }
+    } catch {}
+
+    const response = {
+      location: {
+        ciudad: locInfo.ciudad || 'Vigo',
+        barrio: locInfo.barrio || null,
+      },
+      data: filtered
+    };
+
+    return res.status(200).json(response);
 
   } catch (e) {
     return res.status(500).json({ error: "No se pudieron obtener los datos", detalle: e.message });
