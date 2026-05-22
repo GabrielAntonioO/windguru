@@ -1,6 +1,26 @@
+const JSONBIN_API_KEY = '$2a$10$AjMK/XksYd.Fw0phfT.B4ud0nuC1nyjt0ZBo52sJk/wnCU75zuC76';
+const JSONBIN_BIN_ID  = '6a0ffb2bee5a733b12fde0eb';
+const JSONBIN_URL     = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
+
+const DEFAULT_LAT = 42.24;
+const DEFAULT_LON = -8.72;
+
 let cache = null;
 let cacheTime = 0;
 const TTL = 10 * 60 * 1000;
+
+async function getLocation() {
+  try {
+    const r = await fetch(JSONBIN_URL + '/latest', {
+      headers: { 'X-Master-Key': JSONBIN_API_KEY }
+    });
+    if (!r.ok) throw new Error(`JSONBin ${r.status}`);
+    const data = await r.json();
+    const rec = data.record;
+    if (rec?.lat && rec?.lon) return { lat: rec.lat, lon: rec.lon };
+  } catch {}
+  return { lat: DEFAULT_LAT, lon: DEFAULT_LON };
+}
 
 // Convert RH over water → RHi (over ice) using Magnus formula
 function toRHi(RHw, T_C) {
@@ -21,18 +41,21 @@ function contrailPct(T, RHw) {
 }
 
 export default async function handler(req, res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Content-Type", "application/json");
+
   const now = Date.now();
 
   if (cache && now - cacheTime < TTL) {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Content-Type", "application/json");
     return res.status(200).json(cache);
   }
 
   try {
+    const { lat, lon } = await getLocation();
+
     const url =
       "https://api.open-meteo.com/v1/forecast" +
-      "?latitude=42.24&longitude=-8.72" +
+      `?latitude=${lat}&longitude=${lon}` +
       "&hourly=wind_speed_10m,wind_gusts_10m,wind_direction_10m" +
       ",temperature_2m,cloud_cover_low,cloud_cover_mid,cloud_cover_high,precipitation" +
       ",temperature_200hPa,temperature_225hPa,temperature_275hPa" +
@@ -40,7 +63,7 @@ export default async function handler(req, res) {
       "&daily=sunrise,sunset" +
       "&wind_speed_unit=kmh" +
       "&timezone=Europe%2FMadrid" +
-      "&forecast_days=2";
+      "&forecast_days=7";
 
     const r = await fetch(url);
     if (!r.ok) throw new Error(`Open-Meteo status ${r.status}`);
@@ -69,44 +92,41 @@ export default async function handler(req, res) {
     const result = h.time.map((t, i) => {
       const dateKey = t.slice(0, 10);
       const hora    = parseInt(t.slice(11, 13));
-      const viento  = Math.round(h.wind_speed_10m?.[i] ?? 0);
 
       return {
         timestamp: t,
         dateKey,
         hora,
-        viento,
-        rafagas:   Math.round(h.wind_gusts_10m?.[i]     ?? 0),
-        temp:      Math.round(h.temperature_2m?.[i]     ?? 0),
-        nub_baja:  Math.round(h.cloud_cover_low?.[i]    ?? 0),
-        nub_media: Math.round(h.cloud_cover_mid?.[i]    ?? 0),
-        nub_alta:  Math.round(h.cloud_cover_high?.[i]   ?? 0),
-        lluvia:    parseFloat((h.precipitation?.[i]     ?? 0).toFixed(1)),
+        viento:    Math.round(h.wind_speed_10m?.[i]       ?? 0),
+        rafagas:   Math.round(h.wind_gusts_10m?.[i]       ?? 0),
+        temp:      Math.round(h.temperature_2m?.[i]       ?? 0),
+        nub_baja:  Math.round(h.cloud_cover_low?.[i]      ?? 0),
+        nub_media: Math.round(h.cloud_cover_mid?.[i]      ?? 0),
+        nub_alta:  Math.round(h.cloud_cover_high?.[i]     ?? 0),
+        lluvia:    parseFloat((h.precipitation?.[i]       ?? 0).toFixed(1)),
         sunrise:   sunMap[dateKey]?.sunrise ?? null,
         sunset:    sunMap[dateKey]?.sunset  ?? null,
-        e12: contrailPct(h.temperature_200hPa?.[i] ?? 0, h.relative_humidity_200hPa?.[i] ?? 0),
-        e11: contrailPct(h.temperature_225hPa?.[i] ?? 0, h.relative_humidity_225hPa?.[i] ?? 0),
-        e10: contrailPct(h.temperature_275hPa?.[i] ?? 0, h.relative_humidity_275hPa?.[i] ?? 0),
+        e12: contrailPct(h.temperature_200hPa?.[i]  ?? 0, h.relative_humidity_200hPa?.[i]  ?? 0),
+        e11: contrailPct(h.temperature_225hPa?.[i]  ?? 0, h.relative_humidity_225hPa?.[i]  ?? 0),
+        e10: contrailPct(h.temperature_275hPa?.[i]  ?? 0, h.relative_humidity_275hPa?.[i]  ?? 0),
       };
     });
 
-    // Filter from current hour
+    // Filter from current hour, show 7 days
     const startIdx = result.findIndex(d => {
       const f = new Date(d.timestamp);
       return f.toDateString() === nowDate && d.hora >= nowHour;
     });
 
-    const filtered = result.slice(startIdx >= 0 ? startIdx : 0, (startIdx >= 0 ? startIdx : 0) + 48);
+    const from = startIdx >= 0 ? startIdx : 0;
+    const filtered = result.slice(from, from + 7 * 24);
 
     cache = filtered;
     cacheTime = now;
 
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Content-Type", "application/json");
     return res.status(200).json(filtered);
 
   } catch (e) {
-    res.setHeader("Content-Type", "application/json");
     return res.status(500).json({ error: "No se pudieron obtener los datos", detalle: e.message });
   }
 }
