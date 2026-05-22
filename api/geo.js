@@ -1,7 +1,7 @@
-import { promises as fs } from 'fs';
-import path from 'path';
+const JSONBIN_API_KEY = '$2a$10$AjMK/XksYd.Fw0phfT.B4ud0nuC1nyjt0ZBo52sJk/wnCU75zuC76';
+const JSONBIN_BIN_ID  = '6a0ffb2bee5a733b12fde0eb';
+const JSONBIN_URL     = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
 
-const STATE_FILE = '/tmp/location.json';
 const DEFAULT = {
   lat: 42.24,
   lon: -8.72,
@@ -14,15 +14,27 @@ const DEFAULT = {
 
 async function readState() {
   try {
-    const raw = await fs.readFile(STATE_FILE, 'utf8');
-    return JSON.parse(raw);
+    const r = await fetch(JSONBIN_URL + '/latest', {
+      headers: { 'X-Master-Key': JSONBIN_API_KEY }
+    });
+    if (!r.ok) throw new Error(`JSONBin GET ${r.status}`);
+    const data = await r.json();
+    return data.record;
   } catch {
     return { ...DEFAULT };
   }
 }
 
 async function writeState(state) {
-  await fs.writeFile(STATE_FILE, JSON.stringify(state), 'utf8');
+  const r = await fetch(JSONBIN_URL, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Master-Key': JSONBIN_API_KEY,
+    },
+    body: JSON.stringify(state),
+  });
+  if (!r.ok) throw new Error(`JSONBin PUT ${r.status}`);
 }
 
 async function reverseGeocode(lat, lon) {
@@ -51,15 +63,12 @@ export default async function handler(req, res) {
     return res.status(200).json(state);
   }
 
-  // POST with coords → reverse geocode and maybe update
+  // POST with coords → reverse geocode and update
   try {
     const latN = parseFloat(lat);
     const lonN = parseFloat(lon);
     const { barrio, ciudad, pais } = await reverseGeocode(latN, lonN);
 
-    const current = await readState();
-
-    // Always update coords and location
     const newState = {
       lat: latN,
       lon: lonN,
