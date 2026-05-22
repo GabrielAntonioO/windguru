@@ -112,6 +112,7 @@
 </head>
 <body>
 
+<div id="titulo" style="padding:16px 14px 4px;font-size:14px;color:#555566;letter-spacing:0.08em;text-transform:uppercase;"></div>
 <div id="estado"><span class="spinner"></span> Cargando datos…</div>
 
 <div id="contenedor" style="display:none">
@@ -122,7 +123,7 @@
   const DIA_ABR = ['DO','LU','MA','MI','JU','VI','SA'];
 
   // Alternating day backgrounds (light theme for date rows)
-  const DAY_COLORS = ['#e0e0e0', '#f0f0f0'];
+  const DAY_COLORS = ['#c8c8c8', '#e8e8e8'];
 
   function getDayBg(dateKey) {
     // Count distinct days from epoch to determine even/odd
@@ -305,10 +306,22 @@
 
     try {
       const res  = await fetch('/api/wind');
-      const data = await res.json();
+      const json = await res.json();
 
-      if (!res.ok || data.error) { mostrarError(data.error || `Error ${res.status}`); return; }
+      if (!res.ok || json.error) { mostrarError(json.error || `Error ${res.status}`); return; }
+
+      const data     = json.data;
+      const location = json.location;
+
       if (!Array.isArray(data) || data.length === 0) { mostrarError('Sin datos disponibles.'); return; }
+
+      // Show dynamic title
+      if (location) {
+        const lugar = location.barrio && location.ciudad
+          ? `${location.barrio}, ${location.ciudad}`
+          : location.ciudad || 'Vigo';
+        document.getElementById('titulo').textContent = '📍 Clima para ' + lugar;
+      }
 
       buildTable(data);
       document.getElementById('estado').style.display  = 'none';
