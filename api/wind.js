@@ -53,25 +53,29 @@ export default async function handler(req, res) {
   try {
     const { lat, lon } = await getLocation();
 
-    const url =
-      "https://api.open-meteo.com/v1/forecast" +
-      `?latitude=${lat}&longitude=${lon}` +
+    const baseParams = `?latitude=${lat}&longitude=${lon}&daily=sunrise,sunset&wind_speed_unit=kmh&timezone=Europe%2FMadrid&forecast_days=7`;
+
+    // URL 1: GFS for weather (temp, wind, rain, clouds)
+    const urlWeather =
+      "https://api.open-meteo.com/v1/forecast" + baseParams +
       "&hourly=wind_speed_10m,wind_gusts_10m,wind_direction_10m" +
       ",temperature_2m,cloud_cover_low,cloud_cover_mid,cloud_cover_high,precipitation" +
-      ",temperature_200hPa,temperature_225hPa,temperature_275hPa" +
-      ",relative_humidity_200hPa,relative_humidity_225hPa,relative_humidity_275hPa" +
-      "&daily=sunrise,sunset" +
-      "&wind_speed_unit=kmh" +
-      "&timezone=Europe%2FMadrid" +
-      "&forecast_days=7" +
       "&models=gfs_seamless";
 
-    const r = await fetch(url);
-    if (!r.ok) throw new Error(`Open-Meteo status ${r.status}`);
+    // URL 2: default model for contrail pressure levels
+    const urlContrail =
+      "https://api.open-meteo.com/v1/forecast" + baseParams +
+      "&hourly=temperature_200hPa,temperature_225hPa,temperature_275hPa" +
+      ",relative_humidity_200hPa,relative_humidity_225hPa,relative_humidity_275hPa";
 
-    const data = await r.json();
-    const h = data.hourly;
-    const daily = data.daily;
+    const [r1, r2] = await Promise.all([fetch(urlWeather), fetch(urlContrail)]);
+    if (!r1.ok) throw new Error(`Open-Meteo weather status ${r1.status}`);
+    if (!r2.ok) throw new Error(`Open-Meteo contrail status ${r2.status}`);
+
+    const data   = await r1.json();
+    const dataC  = await r2.json();
+    const h      = { ...data.hourly, ...dataC.hourly };
+    const daily  = data.daily;
 
     if (!h?.time) throw new Error("Respuesta inesperada de Open-Meteo");
 
