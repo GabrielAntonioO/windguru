@@ -63,7 +63,8 @@ export default async function handler(req, res) {
       "&daily=sunrise,sunset" +
       "&wind_speed_unit=kmh" +
       "&timezone=Europe%2FMadrid" +
-      "&forecast_days=7";
+      "&forecast_days=7" +
+      "&models=gfs_seamless";
 
     const r = await fetch(url);
     if (!r.ok) throw new Error(`Open-Meteo status ${r.status}`);
