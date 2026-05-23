@@ -43,18 +43,20 @@ export default async function handler(req, res) {
   try {
     const { lat, lon } = await getLocation();
 
-    const baseParams = `?latitude=${lat}&longitude=${lon}&daily=sunrise,sunset&wind_speed_unit=kmh&timezone=Europe%2FMadrid&forecast_days=7`;
+    const coords = `?latitude=${lat}&longitude=${lon}&timezone=Europe%2FMadrid&forecast_days=7`;
 
-    // URL 1: ECMWF for weather (temp, wind, rain, clouds)
+    // URL 1: ECMWF for weather (temp, wind, rain, clouds) + sunrise/sunset
     const urlWeather =
-      "https://api.open-meteo.com/v1/forecast" + baseParams +
+      "https://api.open-meteo.com/v1/forecast" + coords +
       "&hourly=wind_speed_10m,wind_gusts_10m,wind_direction_10m" +
       ",temperature_2m,cloud_cover_low,cloud_cover_mid,cloud_cover_high,precipitation" +
+      "&daily=sunrise,sunset" +
+      "&wind_speed_unit=kmh" +
       "&models=ecmwf_ifs025";
 
     // URL 2: default model for contrail pressure levels
     const urlContrail =
-      "https://api.open-meteo.com/v1/forecast" + baseParams +
+      "https://api.open-meteo.com/v1/forecast" + coords +
       "&hourly=temperature_200hPa,temperature_225hPa,temperature_275hPa" +
       ",relative_humidity_200hPa,relative_humidity_225hPa,relative_humidity_275hPa";
 
