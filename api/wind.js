@@ -5,10 +5,6 @@ const JSONBIN_URL     = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
 const DEFAULT_LAT = 42.24;
 const DEFAULT_LON = -8.72;
 
-let cache = null;
-let cacheTime = 0;
-const TTL = 10 * 60 * 1000;
-
 async function getLocation() {
   try {
     const r = await fetch(JSONBIN_URL + '/latest', {
@@ -44,23 +40,17 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Content-Type", "application/json");
 
-  const now = Date.now();
-
-  if (cache && now - cacheTime < TTL) {
-    return res.status(200).json(cache);
-  }
-
   try {
     const { lat, lon } = await getLocation();
 
     const baseParams = `?latitude=${lat}&longitude=${lon}&daily=sunrise,sunset&wind_speed_unit=kmh&timezone=Europe%2FMadrid&forecast_days=7`;
 
-    // URL 1: GFS for weather (temp, wind, rain, clouds)
+    // URL 1: ECMWF for weather (temp, wind, rain, clouds)
     const urlWeather =
       "https://api.open-meteo.com/v1/forecast" + baseParams +
       "&hourly=wind_speed_10m,wind_gusts_10m,wind_direction_10m" +
       ",temperature_2m,cloud_cover_low,cloud_cover_mid,cloud_cover_high,precipitation" +
-      "&models=gfs_seamless";
+      "&models=ecmwf_ifs025";
 
     // URL 2: default model for contrail pressure levels
     const urlContrail =
