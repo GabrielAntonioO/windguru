@@ -118,12 +118,7 @@ export default async function handler(req, res) {
     const from = startIdx >= 0 ? startIdx : 0;
     const filtered = result.slice(from, from + 7 * 24);
 
-    cache = filtered;
-    cacheTime = now;
-
-    // Include location metadata for the title
-    const { lat: rLat, lon: rLon } = await getLocation();
-    // Re-read full location info for title
+    // Read location info for title (already fetched above)
     let locInfo = { ciudad: 'Vigo', barrio: null };
     try {
       const lr = await fetch(JSONBIN_URL + '/latest', { headers: { 'X-Master-Key': JSONBIN_API_KEY } });
