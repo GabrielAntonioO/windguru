@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <title>Viento · Vigo</title>
+  <title>Viento</title>
   <style>
     :root {
       --bg:       #000000;
@@ -113,7 +113,7 @@
 <body>
 
 <div id="titulo" style="padding:16px 14px 8px;font-size:20px;color:#ffffff;background:#000000;letter-spacing:0.08em;text-transform:uppercase;font-family:'SF Mono','Fira Code','Menlo',monospace;font-weight:700;"></div>
-<div id="estado"><span class="spinner"></span> Cargando datos…</div>
+<div id="estado"><span class="spinner"></span> Obteniendo ubicación…</div>
 
 <div id="contenedor" style="display:none">
   <table id="tabla"></table>
@@ -121,12 +121,9 @@
 
 <script>
   const DIA_ABR = ['DO','LU','MA','MI','JU','VI','SA'];
-
-  // Alternating day backgrounds (light theme for date rows)
   const DAY_COLORS = ['#c8c8c8', '#e8e8e8'];
 
   function getDayBg(dateKey) {
-    // Count distinct days from epoch to determine even/odd
     const d = new Date(dateKey);
     const dayNum = Math.floor(d.getTime() / 86400000);
     return DAY_COLORS[dayNum % 2];
@@ -268,7 +265,6 @@
     }
 
     document.getElementById('tabla').innerHTML =
-      // ── SECTION 1: climate ──
       fechaRow() +
       horaRow() +
       dataRow('Clima',  d => ['#000000', '#ffffff', climaEmoji(d)]) +
@@ -276,12 +272,8 @@
       dataRow('Temp',   d => { const [bg,fg] = tempBg(d.temp);      return [bg, fg, d.temp+'°']; }) +
       dataRow('Viento', d => { const [bg,fg] = windBg(d.viento);    return [bg, fg, d.viento]; }) +
       dataRow('Rachas', d => { const [bg,fg] = windBg(d.rafagas);   return [bg, fg, d.rafagas]; }) +
-
-      // ── 2 blank rows ──
       blankRow() +
       blankRow() +
-
-      // ── SECTION 2: nubes + estelas ──
       fechaRow() +
       horaRow() +
       dataRow('Na %',   d => { const [bg,fg] = nubeBg(d.nub_alta);  return [bg, fg, d.nub_alta]; }) +
@@ -299,13 +291,31 @@
       </div>`;
   }
 
+  async function getLocationFromGPS() {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) { resolve(null); return; }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+        ()    => resolve(null),
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+      );
+    });
+  }
+
   async function cargar() {
     document.getElementById('contenedor').style.display = 'none';
     document.getElementById('estado').style.display = 'block';
-    document.getElementById('estado').innerHTML = '<span class="spinner"></span> Cargando datos…';
+    document.getElementById('estado').innerHTML = '<span class="spinner"></span> Obteniendo ubicación…';
 
     try {
-      const res  = await fetch('/api/wind');
+      // Try to get GPS from mobile
+      const gps = await getLocationFromGPS();
+      let url = '/api/wind';
+      if (gps) {
+        url += `?lat=${gps.lat}&lon=${gps.lon}`;
+      }
+
+      const res  = await fetch(url);
       const json = await res.json();
 
       if (!res.ok || json.error) { mostrarError(json.error || `Error ${res.status}`); return; }
@@ -319,8 +329,8 @@
       if (location) {
         const lugar = location.barrio && location.ciudad
           ? `${location.barrio}, ${location.ciudad}`
-          : location.ciudad || 'Vigo';
-        document.getElementById('titulo').textContent = '📍 Clima para ' + lugar;
+          : location.ciudad || 'Desconocido';
+        document.getElementById('titulo').textContent = '📍 CLIMA PARA ' + lugar.toUpperCase();
       }
 
       buildTable(data);
