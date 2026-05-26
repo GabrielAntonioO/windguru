@@ -5,7 +5,7 @@ const JSONBIN_URL     = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
 const DEFAULT_LAT = 42.24;
 const DEFAULT_LON = -8.72;
 
-async function getLocation() {
+async function getLocationFromJsonBin() {
   try {
     const r = await fetch(JSONBIN_URL + '/latest', {
       headers: { 'X-Master-Key': JSONBIN_API_KEY }
@@ -36,12 +36,63 @@ function contrailPct(T, RHw) {
   return map[Math.min(cpi, 7)];
 }
 
+async function getReverseGeocode(lat, lon) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=es`;
+    const r = await fetch(url, {
+      headers: { 'User-Agent': 'WindguruApp/1.0', 'Accept-Language': 'es' }
+    });
+    if (!r.ok) throw new Error();
+    const data = await r.json();
+    const a = data.address;
+    const barrio = a.suburb || a.quarter || a.village || a.hamlet || null;
+    const ciudad = a.city || a.town || a.county || a.municipality || 'Desconocido';
+    return { barrio, ciudad };
+  } catch {
+    return { barrio: null, ciudad: 'Desconocido' };
+  }
+}
+
+
+async function saveLocationToJsonBin(lat, lon, barrio, ciudad) {
+  try {
+    const state = {
+      lat,
+      lon,
+      barrio,
+      ciudad,
+      updated: new Date().toISOString(),
+    };
+    const r = await fetch(JSONBIN_URL, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': JSONBIN_API_KEY,
+      },
+      body: JSON.stringify(state),
+    });
+    if (!r.ok) throw new Error(`JSONBin PUT ${r.status}`);
+  } catch (e) {
+    console.error('Error saving location:', e.message);
+  }
+}
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Content-Type", "application/json");
 
   try {
-    const { lat, lon } = await getLocation();
+    // Get coordinates: from query params (mobile) or JSONBin (watch/default)
+    let lat, lon;
+    
+    if (req.query.lat && req.query.lon) {
+      lat = parseFloat(req.query.lat);
+      lon = parseFloat(req.query.lon);
+    } else {
+      const locData = await getLocationFromJsonBin();
+      lat = locData.lat;
+      lon = locData.lon;
+    }
 
     const coords = `?latitude=${lat}&longitude=${lon}&timezone=Europe%2FMadrid&forecast_days=7`;
 
@@ -118,16 +169,17 @@ export default async function handler(req, res) {
     const from = startIdx >= 0 ? startIdx : 0;
     const filtered = result.slice(from, from + 7 * 24);
 
-    // Read location info for title (already fetched above)
-    let locInfo = { ciudad: 'Vigo', barrio: null };
-    try {
-      const lr = await fetch(JSONBIN_URL + '/latest', { headers: { 'X-Master-Key': JSONBIN_API_KEY } });
-      if (lr.ok) { const ld = await lr.json(); locInfo = ld.record; }
-    } catch {}
+    // Get location name via reverse geocoding
+    const locInfo = await getReverseGeocode(lat, lon);
+
+    // If GPS coordinates were provided by mobile, save to JSONBin for watch
+    if (req.query.lat && req.query.lon) {
+      await saveLocationToJsonBin(lat, lon, locInfo.barrio, locInfo.ciudad);
+    }
 
     const response = {
       location: {
-        ciudad: locInfo.ciudad || 'Vigo',
+        ciudad: locInfo.ciudad || 'Desconocido',
         barrio: locInfo.barrio || null,
       },
       data: filtered
