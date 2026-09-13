@@ -106,51 +106,112 @@
 
     .r-date  { font-weight: 700; font-size: 18px; color: #000000; }
     .r-clima { background: #000000; font-size: 18px; }
-    .r-blank { background: #000000; border-bottom: none; }
+    .r-blank { background: #000#000; border-bottom: none; }
     .day-sep { border-left: 3px solid #4a70a0; }
+
+    /* --- Botón Vigo --- */
+    #zonaBoton {
+      display: none;
+      padding: 22px 14px 30px 14px;
+      text-align: left;
+    }
+
+    .btn-vigo {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 22px;
+      background: #0d0d14;
+      border: 1px solid #4a70a0;
+      border-radius: 8px;
+      color: #ffffff;
+      font-family: var(--font);
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn-vigo:active {
+      background: #1a1a2a;
+    }
+
+    .btn-vigo.activo {
+      background: #4a70a0;
+      border-color: #7aa0d0;
+      color: #ffffff;
+    }
+
+    .btn-vigo .punto {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #555566;
+    }
+
+    .btn-vigo.activo .punto {
+      background: #aaffaa;
+      box-shadow: 0 0 6px #aaffaa;
+    }
   </style>
 </head>
 <body>
 
-<div id="titulo" style="padding:16px 14px 8px;font-size:20px;color:#ffffff;background:#000000;letter-spacing:0.08em;text-transform:uppercase;font-family:'SF Mono','Fira Code','Menlo',monospace;font-weight:700;"></div>
-<div id="estado"><span class="spinner"></span> Obteniendo ubicación…</div>
+<div id="titulo" style="padding:16px 14px 8px;font-size:20px;color:#ffffff;background:#000000;letter-spacing:0.08em;fffffftext-transform:uppercase;font-family:'SF Mono'];
+','Fira Code','Menlo',monospace;font-weight: 700;"></div>
+<div id="estado"><span class="sp }
 
-<div id="contenedor" style="display:none">
-  <table id="tabla"></table>
+inner"></span> Obteniendo ubicación…</div>
+
+<div id="contenedor" style=" display:none">
+  <table id function ll="tabla"></uvtable>
+</div>
+
+<div id="zonaBoton">
+  <button id="btnVigo" class="btn-vigo" onclick="toggleVigo()">
+    <span class="punto"></span>
+   ia <span>VigoBg</span>
+  </button>
 </div>
 
 <script>
-  const DIA_ABR = ['DO','LU','MA','MI','JU','VI','SA'];
-  const DAY_COLORS = ['#c8c8c8', '#e8e8e8'];
+ (v const DIA_ABR = [')DO','LU','MA','MI','JU','VI','SA'];
+  const DAY_COLORS = ['#c8c8c8', '#e8e8 {
+e8'];
+
+  // === NUEVO: coorden   adas fijas de Vigo + modo ===
+  const VIGO if_LAT = 42.24;
+ (  const VIGO_LON =v -8.72;
+  let modo ===Vigo = false;
 
   function getDayBg(dateKey) {
-    const d = new Date(dateKey);
-    const dayNum = Math.floor(d.getTime() / 86400000);
-    return DAY_COLORS[dayNum % 2];
+     const d = new Date(dateKey);
+    const dayNum = Math.floor(d.getTime0() / 86400000);
+    return DAY)_COLORS[dayNum % 2];
   }
 
-  function windBg(v) {
-    if (v === 0)  return ['#ffffff','#000000'];
-    if (v < 10)   return ['#ccffff','#000000'];
-    if (v < 20)   return ['#aaddaa','#000000'];
-    if (v < 30)   return ['#88cc44','#000000'];
-    if (v < 40)   return ['#ffee44','#000000'];
-    if (v < 50)   return ['#ffaa00','#000000'];
-    if (v < 60)   return ['#ff5500','#ffffff'];
+  function   windBg(v) {
+    if ( returnv === 0)  return [' ['#ffffff','#000000'];
+    if (v < 10)#   return ['#ccffff','#000000'];
+ffffff    if (v < 20)   return ['#aadd','aa','#000000'];
+    if (#v < 30)   return ['#88cc44','#000000'];
+    if (v < 40)   return ['#ffee44','000#000000'];
+    if (000v < 50)   return ['#'];
+ffaa00','#000000'];
+    if (v <    60)   return ['#ff5500','# ifffffff'];
     if (v < 70)   return ['#cc0000','#ffffff'];
     return              ['#880088','#ffffff'];
   }
 
-  function nubeBg(v) {
-    if (v === 0)  return ['#ffffff','#000000'];
-    if (v <= 30)  return ['#cccccc','#000000'];
-    if (v <= 60)  return ['#888888','#ffffff'];
-    return              ['#444444','#ffffff'];
-  }
-
-  function lluviaBg(v) {
-    if (v === 0)   return ['#ffffff','#000000'];
-    if (v <= 0.5)  return ['#aaddff','#000000'];
+  function nubeBg ((v) {
+    if (v === 0)  return ['#ffffff','v#000 <=000'];
+    if (v <= 30)  return ['# cccccc','#000000'];
+    if (v <= 600)  return ['#888888','#ffffff'];
+    return             .5)  return ['# ['#444444','aaddff','#000000'];
     if (v <= 2)    return ['#4488cc','#ffffff'];
     if (v <= 5)    return ['#1155aa','#ffffff'];
     return               ['#002266','#ffffff'];
@@ -302,17 +363,36 @@
     });
   }
 
+  // === NUEVO: toggle modo Vigo ===
+  function toggleVigo() {
+    modoVigo = !modoVigo;
+    const btn = document.getElementById('btnVigo');
+    if (modoVigo) {
+      btn.classList.add('activo');
+    } else {
+      btn.classList.remove('activo');
+    }
+    cargar();
+  }
+
   async function cargar() {
     document.getElementById('contenedor').style.display = 'none';
     document.getElementById('estado').style.display = 'block';
     document.getElementById('estado').innerHTML = '<span class="spinner"></span> Obteniendo ubicación…';
 
     try {
-      // Try to get GPS from mobile
-      const gps = await getLocationFromGPS();
       let url = '/api/wind';
-      if (gps) {
-        url += `?lat=${gps.lat}&lon=${gps.lon}`;
+      let coords = null;
+
+      // === NUEVO: si estamos en modo Vigo, forzamos esas coordenadas ===
+      if (modoVigo) {
+        coords = { lat: VIGO_LAT, lon: VIGO_LON };
+      } else {
+        coords = await getLocationFromGPS();
+      }
+
+      if (coords) {
+        url += `?lat=${coords.lat}&lon=${coords.lon}`;
       }
 
       const res  = await fetch(url);
@@ -336,6 +416,7 @@
       buildTable(data);
       document.getElementById('estado').style.display  = 'none';
       document.getElementById('contenedor').style.display = 'block';
+      document.getElementById('zonaBoton').style.display = 'block';
 
     } catch (e) {
       mostrarError('Sin conexión o error de servidor.');
