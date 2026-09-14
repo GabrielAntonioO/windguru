@@ -14,11 +14,6 @@
       --font:     'SF Mono', 'Fira Code', 'Menlo', monospace;
     }
 
-    html, body {
-      height: 100%;
-      overflow: hidden;
-    }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
@@ -72,21 +67,13 @@
       font-size: 14px;
     }
 
-    /*
-      Single scrollable container.
-      Horizontal scroll on the whole page.
-      Vertical scroll on the whole page.
-      Sticky rows use position:sticky + top.
-      Sticky label column uses position:sticky + left.
-    */
     #contenedor {
-      overflow: auto;
+      width: 100%;
+      overflow-x: auto;
       -webkit-overflow-scrolling: touch;
-      width: 100vw;
-      height: 100dvh;
     }
 
-    #contenedor::-webkit-scrollbar { width: 0; height: 0; }
+    #contenedor::-webkit-scrollbar { height: 0; width: 0; }
 
     table {
       border-collapse: collapse;
@@ -94,7 +81,7 @@
     }
 
     td {
-      padding: 8px 14px;
+      padding: 7px 14px;
       text-align: center;
       border-bottom: 1px solid var(--border);
       vertical-align: middle;
@@ -102,57 +89,24 @@
       color: #ffffff;
     }
 
-    /* Sticky label column — always visible on left */
     .label {
       position: sticky;
       left: 0;
-      z-index: 20;
+      z-index: 10;
       background: var(--label-bg);
       font-weight: 600;
       color: #ffffff;
       font-size: 20px;
       letter-spacing: 0.05em;
       text-transform: uppercase;
-      padding: 8px 12px 8px 14px;
+      padding: 7px 12px 7px 14px;
       border-right: 1px solid var(--border);
       min-width: 100px;
     }
 
-    /* Sticky top rows */
-    .sticky-row td {
-      position: sticky;
-      top: 0;
-      z-index: 15;
-    }
-
-    /* The label cell in a sticky row needs higher z-index (overlap corner) */
-    .sticky-row .label {
-      z-index: 25;
-    }
-
-    /* Offset second sticky row below first */
-    .sticky-row-2 td {
-      position: sticky;
-      top: 37px; /* height of first row approx */
-      z-index: 14;
-    }
-
-    .sticky-row-2 .label {
-      z-index: 24;
-    }
-
-    /* Date row */
-    .r-date {
-      background: #111118;
-      color: #ffffff;
-      font-weight: 700;
-      font-size: 18px;
-    }
-
-    /* Clima row */
+    .r-date  { background: #111118; color: #ffffff; font-weight: 700; font-size: 18px; }
     .r-clima { background: #000000; font-size: 18px; }
-
-    /* Day separator */
+    .r-blank { background: #000000; border-bottom: none; }
     .day-sep { border-left: 3px solid #4a70a0; }
   </style>
 </head>
@@ -167,7 +121,6 @@
 <script>
   const DIA_ABR = ['DO','LU','MA','MI','JU','VI','SA'];
 
-  /* ── Color helpers ── */
   function windBg(v) {
     if (v === 0)  return ['#ffffff','#000000'];
     if (v < 10)   return ['#ccffff','#000000'];
@@ -204,132 +157,122 @@
     return              ['#cc2200','#ffffff'];
   }
 
-  /* ── Sun helpers ── */
-  // "YYYY-MM-DDTHH:MM" → { h: int, label: "HH:MM" }
+  function estelasBg(v) {
+    if (v === 0)   return ['#ffffff','#000000'];
+    if (v <= 30)   return ['#aaddaa','#000000'];
+    if (v <= 50)   return ['#ffee44','#000000'];
+    if (v <= 80)   return ['#ff8800','#000000'];
+    return               ['#cc2200','#ffffff'];
+  }
+
   function parseSun(str) {
     if (!str) return null;
-    const t = str.slice(11, 16); // "HH:MM"
-    const h = parseInt(str.slice(11, 13));
-    return { h, label: t };
+    const h     = parseInt(str.slice(11, 13));
+    const label = str.slice(11, 16);
+    return { h, label };
   }
 
   function horaCell(d, sep) {
     const sepStyle = sep ? 'border-left:3px solid #4a70a0;' : '';
-
     const sr = parseSun(d.sunrise);
     const ss = parseSun(d.sunset);
 
-    if (sr && d.hora === sr.h) {
+    if (sr && d.hora === sr.h)
       return `<td style="background:#ff8800;color:#000000;font-weight:700;${sepStyle}">${sr.label}</td>`;
-    }
-    if (ss && d.hora === ss.h) {
+    if (ss && d.hora === ss.h)
       return `<td style="background:#ff8800;color:#000000;font-weight:700;${sepStyle}">${ss.label}</td>`;
-    }
 
     const isDay = sr && ss && d.hora > sr.h && d.hora < ss.h;
     const txt   = String(d.hora).padStart(2,'0');
-
-    if (isDay) {
+    if (isDay)
       return `<td style="background:#ffffff;color:#000000;font-weight:600;${sepStyle}">${txt}</td>`;
-    }
-    return `<td style="background:#000000;color:#ffffff;font-weight:400;border:1px solid #222;${sepStyle}">${txt}</td>`;
+    return `<td style="background:#000000;color:#ffffff;border:1px solid #222;${sepStyle}">${txt}</td>`;
   }
 
   function climaEmoji(d) {
     if (d.lluvia > 0) return '💧';
-    if (d.nub_alta > 0 || d.nub_media > 0 || d.nub_baja > 0) return '☁️';
+    const efectiva = d.nub_baja * 1.0 + d.nub_media * 0.5 + d.nub_alta * 0.1;
+    if (efectiva > 60) return '☁️';
     const sr = parseSun(d.sunrise);
     const ss = parseSun(d.sunset);
     const isDay = sr && ss && d.hora > sr.h && d.hora < ss.h;
+    if (efectiva > 25) return '🌤️';
     return isDay ? '☀️' : '🌙';
   }
 
+  function dowFromKey(key) {
+    const [y, m, d] = key.split('-').map(Number);
+    return new Date(y, m - 1, d).getDay();
+  }
+
   function buildTable(data) {
-    const nowMadrid = new Date().toLocaleString('en-US', { timeZone: 'Europe/Madrid' });
-    const nowHour   = new Date(nowMadrid).getHours();
+    const isDayStart = data.map((d, i) =>
+      i > 0 && d.dateKey !== data[i-1].dateKey
+    );
 
-    let nowIdx = 0;
-    for (let i = 0; i < data.length; i++) {
-      if (data[i].hora === nowHour) { nowIdx = i; break; }
+    const label     = txt => `<td class="label">${txt}</td>`;
+    const labelBlank = () => `<td class="label" style="border-bottom:none;background:#000000;"></td>`;
+
+    // Helper to build a fecha row
+    function fechaRow(cls) {
+      let row = `<tr>${label('Fecha')}`;
+      data.forEach((d, i) => {
+        const sep = isDayStart[i];
+        const abr = DIA_ABR[dowFromKey(d.dateKey)];
+        row += `<td class="r-date" style="${sep ? 'border-left:3px solid #4a70a0;' : ''}">${abr}</td>`;
+      });
+      return row + '</tr>';
     }
 
-    // Compute day-of-week from dateKey "YYYY-MM-DD"
-    function dowFromKey(key) {
-      // new Date("YYYY-MM-DD") is UTC midnight — use split to avoid TZ offset
-      const [y, m, d] = key.split('-').map(Number);
-      return new Date(y, m - 1, d).getDay(); // 0=Sun
+    // Helper to build a hora row
+    function horaRow() {
+      let row = `<tr>${label('Hora')}`;
+      data.forEach((d, i) => { row += horaCell(d, isDayStart[i]); });
+      return row + '</tr>';
     }
 
-    // Detect day changes
-    const isDayStart = data.map((d, i) => {
-      if (i === 0) return false;
-      return d.dateKey !== data[i-1].dateKey;
-    });
+    // Blank row
+    function blankRow() {
+      let row = `<tr>${labelBlank()}`;
+      data.forEach(() => { row += `<td class="r-blank"></td>`; });
+      return row + '</tr>';
+    }
 
-    const label = txt => `<td class="label">${txt}</td>`;
-
-    // Build each row
-    const rows = {
-      fecha:  `<tr class="sticky-row">${label('Fecha')}`,
-      hora:   `<tr class="sticky-row-2">${label('Hora')}`,
-      clima:  `<tr>${label('Clima')}`,
-      lluvia: `<tr>${label('Lluvia')}`,
-      temp:   `<tr>${label('Temp')}`,
-      viento: `<tr>${label('Viento')}`,
-      rachas: `<tr>${label('Rachas')}`,
-      na:     `<tr>${label('Na %')}`,
-      nm:     `<tr>${label('Nm %')}`,
-      nb:     `<tr>${label('Nb %')}`,
-    };
-
-    data.forEach((d, i) => {
-      
-      const sep   = isDayStart[i];
-      const sepStyle = sep ? 'border-left:3px solid #4a70a0;' : '';
-      const dow   = dowFromKey(d.dateKey);
-      const abr   = DIA_ABR[dow];
-
-      const [wBg,  wFg]  = windBg(d.viento);
-      const [gBg,  gFg]  = windBg(d.rafagas);
-      const [tBg,  tFg]  = tempBg(d.temp);
-      const [lBg,  lFg]  = lluviaBg(d.lluvia);
-      const [naBg, naFg] = nubeBg(d.nub_alta);
-      const [nmBg, nmFg] = nubeBg(d.nub_media);
-      const [nbBg, nbFg] = nubeBg(d.nub_baja);
-
-      rows.fecha  += `<td class="r-date" style="${sepStyle}">${abr}</td>`;
-      rows.hora   += horaCell(d, sep);
-      rows.clima  += `<td class="r-clima" style="${sepStyle}">${climaEmoji(d)}</td>`;
-      rows.lluvia += `<td style="background:${lBg};color:${lFg};${sepStyle}">${d.lluvia}</td>`;
-      rows.temp   += `<td style="background:${tBg};color:${tFg};${sepStyle}">${d.temp}°</td>`;
-      rows.viento += `<td style="background:${wBg};color:${wFg};${sepStyle}">${d.viento}</td>`;
-      rows.rachas += `<td style="background:${gBg};color:${gFg};${sepStyle}">${d.rafagas}</td>`;
-      rows.na     += `<td style="background:${naBg};color:${naFg};${sepStyle}">${d.nub_alta}</td>`;
-      rows.nm     += `<td style="background:${nmBg};color:${nmFg};${sepStyle}">${d.nub_media}</td>`;
-      rows.nb     += `<td style="background:${nbBg};color:${nbFg};${sepStyle}">${d.nub_baja}</td>`;
-    });
-
-    Object.keys(rows).forEach(k => rows[k] += '</tr>');
+    // Data rows builder
+    function dataRow(lbl, fn) {
+      let row = `<tr>${label(lbl)}`;
+      data.forEach((d, i) => {
+        const sep = isDayStart[i];
+        const sepStyle = sep ? 'border-left:3px solid #4a70a0;' : '';
+        const [bg, fg, val] = fn(d);
+        row += `<td style="background:${bg};color:${fg};${sepStyle}">${val}</td>`;
+      });
+      return row + '</tr>';
+    }
 
     document.getElementById('tabla').innerHTML =
-      rows.fecha + rows.hora + rows.clima + rows.lluvia +
-      rows.temp + rows.viento + rows.rachas + rows.na + rows.nm + rows.nb;
+      // ── SECTION 1: climate ──
+      fechaRow() +
+      horaRow() +
+      dataRow('Clima',  d => ['#000000', '#ffffff', climaEmoji(d)]) +
+      dataRow('Lluvia', d => { const [bg,fg] = lluviaBg(d.lluvia);  return [bg, fg, d.lluvia]; }) +
+      dataRow('Temp',   d => { const [bg,fg] = tempBg(d.temp);      return [bg, fg, d.temp+'°']; }) +
+      dataRow('Viento', d => { const [bg,fg] = windBg(d.viento);    return [bg, fg, d.viento]; }) +
+      dataRow('Rachas', d => { const [bg,fg] = windBg(d.rafagas);   return [bg, fg, d.rafagas]; }) +
 
-    // Scroll to now column
-    setTimeout(() => {
-      const cont = document.getElementById('contenedor');
-      const tbl  = document.getElementById('tabla');
-      const firstRow = tbl.querySelector('tr.sticky-row-2');
-      if (firstRow) {
-        const cells = firstRow.querySelectorAll('td');
-        const nowCell = cells[nowIdx + 1]; // +1 for label
-        if (nowCell) {
-          const cellLeft  = nowCell.offsetLeft;
-          const cellWidth = nowCell.offsetWidth;
-          cont.scrollLeft = cellLeft - cont.clientWidth / 2 + cellWidth / 2;
-        }
-      }
-    }, 200);
+      // ── 2 blank rows ──
+      blankRow() +
+      blankRow() +
+
+      // ── SECTION 2: nubes + estelas ──
+      fechaRow() +
+      horaRow() +
+      dataRow('Na %',   d => { const [bg,fg] = nubeBg(d.nub_alta);  return [bg, fg, d.nub_alta]; }) +
+      dataRow('Nm %',   d => { const [bg,fg] = nubeBg(d.nub_media); return [bg, fg, d.nub_media]; }) +
+      dataRow('Nb %',   d => { const [bg,fg] = nubeBg(d.nub_baja);  return [bg, fg, d.nub_baja]; }) +
+      dataRow('12 km',  d => { const [bg,fg] = estelasBg(d.e12);    return [bg, fg, d.e12+'%']; }) +
+      dataRow('11 km',  d => { const [bg,fg] = estelasBg(d.e11);    return [bg, fg, d.e11+'%']; }) +
+      dataRow('10 km',  d => { const [bg,fg] = estelasBg(d.e10);    return [bg, fg, d.e10+'%']; });
   }
 
   function mostrarError(msg) {
@@ -363,8 +306,6 @@
 
   cargar();
   setInterval(cargar, 10 * 60 * 1000);
-
-
 </script>
 </body>
 </html>
