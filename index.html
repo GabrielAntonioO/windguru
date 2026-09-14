@@ -23,6 +23,17 @@
       font-size: 20px;
     }
 
+    #titulo {
+      padding: 16px 14px 8px;
+      font-size: 20px;
+      color: #ffffff;
+      background: #000000;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-family: var(--font);
+      font-weight: 700;
+    }
+
     #estado {
       padding: 24px 14px;
       text-align: center;
@@ -158,6 +169,7 @@
 </head>
 <body>
 
+<div id="titulo"></div>
 <div id="estado"><span class="spinner"></span> Cargando datos…</div>
 
 <div id="contenedor" style="display:none">
@@ -271,7 +283,7 @@
     const label     = txt => `<td class="label">${txt}</td>`;
     const labelBlank = () => `<td class="label" style="border-bottom:none;background:#000000;"></td>`;
 
-    function fechaRow(cls) {
+    function fechaRow() {
       let row = `<tr>${label('Fecha')}`;
       data.forEach((d, i) => {
         const sep = isDayStart[i];
@@ -331,15 +343,10 @@
       </div>`;
   }
 
-  // ── Toggle del modo Vigo ──
   function toggleVigo() {
     modoVigo = !modoVigo;
     const btn = document.getElementById('btnVigo');
-    if (modoVigo) {
-      btn.classList.add('activo');
-    } else {
-      btn.classList.remove('activo');
-    }
+    btn.classList.toggle('activo', modoVigo);
     cargar();
   }
 
@@ -349,8 +356,6 @@
     document.getElementById('estado').innerHTML = '<span class="spinner"></span> Cargando datos…';
 
     try {
-      // Si el modo Vigo está activo, forzamos esas coordenadas.
-      // Si no, dejamos que el backend use JSONBin (que tendrá el GPS del móvil o Vigo).
       const url = modoVigo
         ? `/api/wind?lat=${VIGO_LAT}&lon=${VIGO_LON}&t=${Date.now()}`
         : `/api/wind?t=${Date.now()}`;
@@ -372,6 +377,7 @@
           ? `${json.location.barrio}, ${json.location.ciudad}`
           : json.location.ciudad || 'Desconocido';
         document.title = 'Viento · ' + lugar;
+        document.getElementById('titulo').textContent = '📍 CLIMA PARA ' + lugar.toUpperCase();
       }
 
       buildTable(data);
