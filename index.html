@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <title>Viento</title>
+  <title>Viento · Vigo</title>
   <style>
     :root {
       --bg:       #000000;
@@ -104,134 +104,57 @@
       min-width: 100px;
     }
 
-    .r-date  { font-weight: 700; font-size: 18px; color: #000000; }
+    .r-date  { background: #111118; color: #ffffff; font-weight: 700; font-size: 18px; }
     .r-clima { background: #000000; font-size: 18px; }
-    .r-blank { background: #000#000; border-bottom: none; }
+    .r-blank { background: #000000; border-bottom: none; }
     .day-sep { border-left: 3px solid #4a70a0; }
-
-    /* --- Botón Vigo --- */
-    #zonaBoton {
-      display: none;
-      padding: 22px 14px 30px 14px;
-      text-align: left;
-    }
-
-    .btn-vigo {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 12px 22px;
-      background: #0d0d14;
-      border: 1px solid #4a70a0;
-      border-radius: 8px;
-      color: #ffffff;
-      font-family: var(--font);
-      font-size: 16px;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      cursor: pointer;
-      transition: background 0.15s, border-color 0.15s;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .btn-vigo:active {
-      background: #1a1a2a;
-    }
-
-    .btn-vigo.activo {
-      background: #4a70a0;
-      border-color: #7aa0d0;
-      color: #ffffff;
-    }
-
-    .btn-vigo .punto {
-      display: inline-block;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #555566;
-    }
-
-    .btn-vigo.activo .punto {
-      background: #aaffaa;
-      box-shadow: 0 0 6px #aaffaa;
-    }
   </style>
 </head>
 <body>
 
-<div id="titulo" style="padding:16px 14px 8px;font-size:20px;color:#ffffff;background:#000000;letter-spacing:0.08em;fffffftext-transform:uppercase;font-family:'SF Mono'];
-','Fira Code','Menlo',monospace;font-weight: 700;"></div>
-<div id="estado"><span class="sp }
+<div id="estado"><span class="spinner"></span> Cargando datos…</div>
 
-inner"></span> Obteniendo ubicación…</div>
-
-<div id="contenedor" style=" display:none">
-  <table id function ll="tabla"></uvtable>
-</div>
-
-<div id="zonaBoton">
-  <button id="btnVigo" class="btn-vigo" onclick="toggleVigo()">
-    <span class="punto"></span>
-   ia <span>VigoBg</span>
-  </button>
+<div id="contenedor" style="display:none">
+  <table id="tabla"></table>
 </div>
 
 <script>
- (v const DIA_ABR = [')DO','LU','MA','MI','JU','VI','SA'];
-  const DAY_COLORS = ['#c8c8c8', '#e8e8 {
-e8'];
+  const DIA_ABR = ['DO','LU','MA','MI','JU','VI','SA'];
 
-  // === NUEVO: coorden   adas fijas de Vigo + modo ===
-  const VIGO if_LAT = 42.24;
- (  const VIGO_LON =v -8.72;
-  let modo ===Vigo = false;
-
-  function getDayBg(dateKey) {
-     const d = new Date(dateKey);
-    const dayNum = Math.floor(d.getTime0() / 86400000);
-    return DAY)_COLORS[dayNum % 2];
-  }
-
-  function   windBg(v) {
-    if ( returnv === 0)  return [' ['#ffffff','#000000'];
-    if (v < 10)#   return ['#ccffff','#000000'];
-ffffff    if (v < 20)   return ['#aadd','aa','#000000'];
-    if (#v < 30)   return ['#88cc44','#000000'];
-    if (v < 40)   return ['#ffee44','000#000000'];
-    if (000v < 50)   return ['#'];
-ffaa00','#000000'];
-    if (v <    60)   return ['#ff5500','# ifffffff'];
+  function windBg(v) {
+    if (v === 0)  return ['#ffffff','#000000'];
+    if (v < 10)   return ['#ccffff','#000000'];
+    if (v < 20)   return ['#aaddaa','#000000'];
+    if (v < 30)   return ['#88cc44','#000000'];
+    if (v < 40)   return ['#ffee44','#000000'];
+    if (v < 50)   return ['#ffaa00','#000000'];
+    if (v < 60)   return ['#ff5500','#ffffff'];
     if (v < 70)   return ['#cc0000','#ffffff'];
     return              ['#880088','#ffffff'];
   }
 
-  function nubeBg ((v) {
-    if (v === 0)  return ['#ffffff','v#000 <=000'];
-    if (v <= 30)  return ['# cccccc','#000000'];
-    if (v <= 600)  return ['#888888','#ffffff'];
-    return             .5)  return ['# ['#444444','aaddff','#000000'];
+  function nubeBg(v) {
+    if (v === 0)  return ['#ffffff','#000000'];
+    if (v <= 30)  return ['#cccccc','#000000'];
+    if (v <= 60)  return ['#888888','#ffffff'];
+    return              ['#444444','#ffffff'];
+  }
+
+  function lluviaBg(v) {
+    if (v === 0)   return ['#ffffff','#000000'];
+    if (v <= 0.5)  return ['#aaddff','#000000'];
     if (v <= 2)    return ['#4488cc','#ffffff'];
     if (v <= 5)    return ['#1155aa','#ffffff'];
     return               ['#002266','#ffffff'];
   }
 
   function tempBg(v) {
-    if (v <= 2)   return ['#d0eeff','#000000'];
-    if (v <= 5)   return ['#b0d8f0','#000000'];
-    if (v <= 8)   return ['#80c0e8','#000000'];
-    if (v <= 10)  return ['#c8e8b0','#000000'];
-    if (v <= 13)  return ['#d8e870','#000000'];
-    if (v <= 16)  return ['#f0e040','#000000'];
-    if (v <= 19)  return ['#f8c030','#000000'];
-    if (v <= 22)  return ['#f89020','#000000'];
-    if (v <= 25)  return ['#f06010','#ffffff'];
-    if (v <= 28)  return ['#e83000','#ffffff'];
-    if (v <= 31)  return ['#cc0000','#ffffff'];
-    if (v <= 35)  return ['#aa0020','#ffffff'];
-    if (v <= 38)  return ['#cc0066','#ffffff'];
-    return              ['#ff00aa','#ffffff'];
+    if (v <= 0)   return ['#003399','#ffffff'];
+    if (v <= 8)   return ['#3366cc','#ffffff'];
+    if (v <= 12)  return ['#66aaff','#ffffff'];
+    if (v <= 17)  return ['#ffee44','#000000'];
+    if (v <= 25)  return ['#ff8800','#000000'];
+    return              ['#cc2200','#ffffff'];
   }
 
   function estelasBg(v) {
@@ -250,7 +173,6 @@ ffaa00','#000000'];
   }
 
   function horaCell(d, sep) {
-    const dayBg   = getDayBg(d.dateKey);
     const sepStyle = sep ? 'border-left:3px solid #4a70a0;' : '';
     const sr = parseSun(d.sunrise);
     const ss = parseSun(d.sunset);
@@ -263,7 +185,7 @@ ffaa00','#000000'];
     const isDay = sr && ss && d.hora > sr.h && d.hora < ss.h;
     const txt   = String(d.hora).padStart(2,'0');
     if (isDay)
-      return `<td style="background:${dayBg};color:#000000;font-weight:600;${sepStyle}">${txt}</td>`;
+      return `<td style="background:#ffffff;color:#000000;font-weight:600;${sepStyle}">${txt}</td>`;
     return `<td style="background:#000000;color:#ffffff;border:1px solid #222;${sepStyle}">${txt}</td>`;
   }
 
@@ -274,7 +196,7 @@ ffaa00','#000000'];
     const sr = parseSun(d.sunrise);
     const ss = parseSun(d.sunset);
     const isDay = sr && ss && d.hora > sr.h && d.hora < ss.h;
-    if (efectiva > 18) return '🌤️';
+    if (efectiva > 25) return '🌤️';
     return isDay ? '☀️' : '🌙';
   }
 
@@ -288,32 +210,35 @@ ffaa00','#000000'];
       i > 0 && d.dateKey !== data[i-1].dateKey
     );
 
-    const label      = txt => `<td class="label">${txt}</td>`;
-    const labelBlank = ()  => `<td class="label" style="border-bottom:none;background:#000000;"></td>`;
+    const label     = txt => `<td class="label">${txt}</td>`;
+    const labelBlank = () => `<td class="label" style="border-bottom:none;background:#000000;"></td>`;
 
-    function fechaRow() {
+    // Helper to build a fecha row
+    function fechaRow(cls) {
       let row = `<tr>${label('Fecha')}`;
       data.forEach((d, i) => {
-        const sep    = isDayStart[i];
-        const abr    = DIA_ABR[dowFromKey(d.dateKey)];
-        const dayBg  = getDayBg(d.dateKey);
-        row += `<td class="r-date" style="background:${dayBg};${sep ? 'border-left:3px solid #4a70a0;' : ''}">${abr}</td>`;
+        const sep = isDayStart[i];
+        const abr = DIA_ABR[dowFromKey(d.dateKey)];
+        row += `<td class="r-date" style="${sep ? 'border-left:3px solid #4a70a0;' : ''}">${abr}</td>`;
       });
       return row + '</tr>';
     }
 
+    // Helper to build a hora row
     function horaRow() {
       let row = `<tr>${label('Hora')}`;
       data.forEach((d, i) => { row += horaCell(d, isDayStart[i]); });
       return row + '</tr>';
     }
 
+    // Blank row
     function blankRow() {
       let row = `<tr>${labelBlank()}`;
       data.forEach(() => { row += `<td class="r-blank"></td>`; });
       return row + '</tr>';
     }
 
+    // Data rows builder
     function dataRow(lbl, fn) {
       let row = `<tr>${label(lbl)}`;
       data.forEach((d, i) => {
@@ -326,6 +251,7 @@ ffaa00','#000000'];
     }
 
     document.getElementById('tabla').innerHTML =
+      // ── SECTION 1: climate ──
       fechaRow() +
       horaRow() +
       dataRow('Clima',  d => ['#000000', '#ffffff', climaEmoji(d)]) +
@@ -333,8 +259,12 @@ ffaa00','#000000'];
       dataRow('Temp',   d => { const [bg,fg] = tempBg(d.temp);      return [bg, fg, d.temp+'°']; }) +
       dataRow('Viento', d => { const [bg,fg] = windBg(d.viento);    return [bg, fg, d.viento]; }) +
       dataRow('Rachas', d => { const [bg,fg] = windBg(d.rafagas);   return [bg, fg, d.rafagas]; }) +
+
+      // ── 2 blank rows ──
       blankRow() +
       blankRow() +
+
+      // ── SECTION 2: nubes + estelas ──
       fechaRow() +
       horaRow() +
       dataRow('Na %',   d => { const [bg,fg] = nubeBg(d.nub_alta);  return [bg, fg, d.nub_alta]; }) +
@@ -352,71 +282,21 @@ ffaa00','#000000'];
       </div>`;
   }
 
-  async function getLocationFromGPS() {
-    return new Promise((resolve) => {
-      if (!navigator.geolocation) { resolve(null); return; }
-      navigator.geolocation.getCurrentPosition(
-        (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-        ()    => resolve(null),
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
-      );
-    });
-  }
-
-  // === NUEVO: toggle modo Vigo ===
-  function toggleVigo() {
-    modoVigo = !modoVigo;
-    const btn = document.getElementById('btnVigo');
-    if (modoVigo) {
-      btn.classList.add('activo');
-    } else {
-      btn.classList.remove('activo');
-    }
-    cargar();
-  }
-
   async function cargar() {
     document.getElementById('contenedor').style.display = 'none';
     document.getElementById('estado').style.display = 'block';
-    document.getElementById('estado').innerHTML = '<span class="spinner"></span> Obteniendo ubicación…';
+    document.getElementById('estado').innerHTML = '<span class="spinner"></span> Cargando datos…';
 
     try {
-      let url = '/api/wind';
-      let coords = null;
+      const res  = await fetch('/api/wind');
+      const data = await res.json();
 
-      // === NUEVO: si estamos en modo Vigo, forzamos esas coordenadas ===
-      if (modoVigo) {
-        coords = { lat: VIGO_LAT, lon: VIGO_LON };
-      } else {
-        coords = await getLocationFromGPS();
-      }
-
-      if (coords) {
-        url += `?lat=${coords.lat}&lon=${coords.lon}`;
-      }
-
-      const res  = await fetch(url);
-      const json = await res.json();
-
-      if (!res.ok || json.error) { mostrarError(json.error || `Error ${res.status}`); return; }
-
-      const data     = json.data;
-      const location = json.location;
-
+      if (!res.ok || data.error) { mostrarError(data.error || `Error ${res.status}`); return; }
       if (!Array.isArray(data) || data.length === 0) { mostrarError('Sin datos disponibles.'); return; }
-
-      // Show dynamic title
-      if (location) {
-        const lugar = location.barrio && location.ciudad
-          ? `${location.barrio}, ${location.ciudad}`
-          : location.ciudad || 'Desconocido';
-        document.getElementById('titulo').textContent = '📍 CLIMA PARA ' + lugar.toUpperCase();
-      }
 
       buildTable(data);
       document.getElementById('estado').style.display  = 'none';
       document.getElementById('contenedor').style.display = 'block';
-      document.getElementById('zonaBoton').style.display = 'block';
 
     } catch (e) {
       mostrarError('Sin conexión o error de servidor.');
