@@ -108,6 +108,52 @@
     .r-clima { background: #000000; font-size: 18px; }
     .r-blank { background: #000000; border-bottom: none; }
     .day-sep { border-left: 3px solid #4a70a0; }
+
+    /* ── Botón Vigo ── */
+    #zonaBoton {
+      display: none;
+      padding: 22px 14px 30px 14px;
+      text-align: left;
+    }
+
+    .btn-vigo {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 22px;
+      background: #0d0d14;
+      border: 1px solid #4a70a0;
+      border-radius: 8px;
+      color: #ffffff;
+      font-family: var(--font);
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn-vigo:active { background: #1a1a2a; }
+
+    .btn-vigo.activo {
+      background: #4a70a0;
+      border-color: #7aa0d0;
+    }
+
+    .btn-vigo .punto {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #555566;
+    }
+
+    .btn-vigo.activo .punto {
+      background: #aaffaa;
+      box-shadow: 0 0 6px #aaffaa;
+    }
   </style>
 </head>
 <body>
@@ -118,8 +164,20 @@
   <table id="tabla"></table>
 </div>
 
+<div id="zonaBoton">
+  <button id="btnVigo" class="btn-vigo" onclick="toggleVigo()">
+    <span class="punto"></span>
+    <span>Vigo</span>
+  </button>
+</div>
+
 <script>
   const DIA_ABR = ['DO','LU','MA','MI','JU','VI','SA'];
+
+  // Coordenadas fijas de Vigo
+  const VIGO_LAT = 42.24;
+  const VIGO_LON = -8.72;
+  let modoVigo  = false;
 
   function windBg(v) {
     if (v === 0)  return ['#ffffff','#000000'];
@@ -213,7 +271,6 @@
     const label     = txt => `<td class="label">${txt}</td>`;
     const labelBlank = () => `<td class="label" style="border-bottom:none;background:#000000;"></td>`;
 
-    // Helper to build a fecha row
     function fechaRow(cls) {
       let row = `<tr>${label('Fecha')}`;
       data.forEach((d, i) => {
@@ -224,21 +281,18 @@
       return row + '</tr>';
     }
 
-    // Helper to build a hora row
     function horaRow() {
       let row = `<tr>${label('Hora')}`;
       data.forEach((d, i) => { row += horaCell(d, isDayStart[i]); });
       return row + '</tr>';
     }
 
-    // Blank row
     function blankRow() {
       let row = `<tr>${labelBlank()}`;
       data.forEach(() => { row += `<td class="r-blank"></td>`; });
       return row + '</tr>';
     }
 
-    // Data rows builder
     function dataRow(lbl, fn) {
       let row = `<tr>${label(lbl)}`;
       data.forEach((d, i) => {
@@ -251,7 +305,6 @@
     }
 
     document.getElementById('tabla').innerHTML =
-      // ── SECTION 1: climate ──
       fechaRow() +
       horaRow() +
       dataRow('Clima',  d => ['#000000', '#ffffff', climaEmoji(d)]) +
@@ -259,12 +312,8 @@
       dataRow('Temp',   d => { const [bg,fg] = tempBg(d.temp);      return [bg, fg, d.temp+'°']; }) +
       dataRow('Viento', d => { const [bg,fg] = windBg(d.viento);    return [bg, fg, d.viento]; }) +
       dataRow('Rachas', d => { const [bg,fg] = windBg(d.rafagas);   return [bg, fg, d.rafagas]; }) +
-
-      // ── 2 blank rows ──
       blankRow() +
       blankRow() +
-
-      // ── SECTION 2: nubes + estelas ──
       fechaRow() +
       horaRow() +
       dataRow('Na %',   d => { const [bg,fg] = nubeBg(d.nub_alta);  return [bg, fg, d.nub_alta]; }) +
@@ -282,18 +331,35 @@
       </div>`;
   }
 
+  // ── Toggle del modo Vigo ──
+  function toggleVigo() {
+    modoVigo = !modoVigo;
+    const btn = document.getElementById('btnVigo');
+    if (modoVigo) {
+      btn.classList.add('activo');
+    } else {
+      btn.classList.remove('activo');
+    }
+    cargar();
+  }
+
   async function cargar() {
     document.getElementById('contenedor').style.display = 'none';
     document.getElementById('estado').style.display = 'block';
     document.getElementById('estado').innerHTML = '<span class="spinner"></span> Cargando datos…';
 
     try {
-      const res  = await fetch('/api/wind?t=' + Date.now(), { cache: 'no-store' });
+      // Si el modo Vigo está activo, forzamos esas coordenadas.
+      // Si no, dejamos que el backend use JSONBin (que tendrá el GPS del móvil o Vigo).
+      const url = modoVigo
+        ? `/api/wind?lat=${VIGO_LAT}&lon=${VIGO_LON}&t=${Date.now()}`
+        : `/api/wind?t=${Date.now()}`;
+
+      const res  = await fetch(url, { cache: 'no-store' });
       const json = await res.json();
 
       if (!res.ok || json.error) { mostrarError(json.error || `Error ${res.status}`); return; }
 
-      // Aceptar AMBOS formatos: array plano o { location, data }
       const data = Array.isArray(json) ? json : json.data;
 
       if (!Array.isArray(data) || data.length === 0) {
@@ -301,7 +367,6 @@
         return;
       }
 
-      // Actualizar el título de la pestaña si viene location
       if (json.location) {
         const lugar = json.location.barrio && json.location.ciudad
           ? `${json.location.barrio}, ${json.location.ciudad}`
@@ -312,6 +377,7 @@
       buildTable(data);
       document.getElementById('estado').style.display  = 'none';
       document.getElementById('contenedor').style.display = 'block';
+      document.getElementById('zonaBoton').style.display = 'block';
 
     } catch (e) {
       mostrarError('Sin conexión o error de servidor.');
