@@ -288,11 +288,26 @@
     document.getElementById('estado').innerHTML = '<span class="spinner"></span> Cargando datos…';
 
     try {
-      const res  = await fetch('/api/wind');
-      const data = await res.json();
+      const res  = await fetch('/api/wind?t=' + Date.now(), { cache: 'no-store' });
+      const json = await res.json();
 
-      if (!res.ok || data.error) { mostrarError(data.error || `Error ${res.status}`); return; }
-      if (!Array.isArray(data) || data.length === 0) { mostrarError('Sin datos disponibles.'); return; }
+      if (!res.ok || json.error) { mostrarError(json.error || `Error ${res.status}`); return; }
+
+      // Aceptar AMBOS formatos: array plano o { location, data }
+      const data = Array.isArray(json) ? json : json.data;
+
+      if (!Array.isArray(data) || data.length === 0) {
+        mostrarError('Sin datos disponibles.');
+        return;
+      }
+
+      // Actualizar el título de la pestaña si viene location
+      if (json.location) {
+        const lugar = json.location.barrio && json.location.ciudad
+          ? `${json.location.barrio}, ${json.location.ciudad}`
+          : json.location.ciudad || 'Desconocido';
+        document.title = 'Viento · ' + lugar;
+      }
 
       buildTable(data);
       document.getElementById('estado').style.display  = 'none';
