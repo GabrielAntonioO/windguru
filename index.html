@@ -120,7 +120,6 @@
     .r-blank { background: #000000; border-bottom: none; }
     .day-sep { border-left: 3px solid #4a70a0; }
 
-    /* ── Botón Vigo ── */
     #zonaBoton {
       display: none;
       padding: 22px 14px 30px 14px;
@@ -186,10 +185,12 @@
 <script>
   const DIA_ABR = ['DO','LU','MA','MI','JU','VI','SA'];
 
-  // Coordenadas fijas de Vigo
   const VIGO_LAT = 42.24;
   const VIGO_LON = -8.72;
   let modoVigo  = false;
+
+  // ✨ Detecta si estamos en el reloj (URL con ?watch=1)
+  const isWatch = new URLSearchParams(location.search).has('watch');
 
   function windBg(v) {
     if (v === 0)  return ['#ffffff','#000000'];
@@ -343,7 +344,6 @@
       </div>`;
   }
 
-  // ── GPS del dispositivo ──
   async function getLocationFromGPS() {
     return new Promise((resolve) => {
       if (!navigator.geolocation) { resolve(null); return; }
@@ -355,7 +355,6 @@
     });
   }
 
-  // ── Toggle del modo Vigo ──
   function toggleVigo() {
     modoVigo = !modoVigo;
     const btn = document.getElementById('btnVigo');
@@ -372,14 +371,19 @@
       let url;
 
       if (modoVigo) {
-        // Modo Vigo: forzamos coordenadas de Vigo
+        // Botón Vigo ON
         url = `/api/wind?lat=${VIGO_LAT}&lon=${VIGO_LON}&t=${Date.now()}`;
+        // En el reloj, no guardamos en JSONBin para no pisar la ubicación del móvil
+        if (isWatch) url += '&nosave=1';
+      } else if (isWatch) {
+        // Reloj: lee lo que el móvil dejó en JSONBin
+        url = `/api/wind?t=${Date.now()}`;
       } else {
-        // Modo normal: leer GPS del dispositivo
+        // Móvil: lee GPS y guarda
         const gps = await getLocationFromGPS();
         url = gps
           ? `/api/wind?lat=${gps.lat}&lon=${gps.lon}&t=${Date.now()}`
-          : `/api/wind?t=${Date.now()}`; // fallback: JSONBin
+          : `/api/wind?t=${Date.now()}`;
       }
 
       const res  = await fetch(url, { cache: 'no-store' });
