@@ -120,6 +120,7 @@
     .r-blank { background: #000000; border-bottom: none; }
     .day-sep { border-left: 3px solid #4a70a0; }
 
+    /* ── Botón Vigo ── */
     #zonaBoton {
       display: none;
       padding: 22px 14px 30px 14px;
@@ -188,9 +189,6 @@
   const VIGO_LAT = 42.24;
   const VIGO_LON = -8.72;
   let modoVigo  = false;
-
-  // ✨ Detecta si estamos en el reloj (URL con ?watch=1)
-  const isWatch = new URLSearchParams(location.search).has('watch');
 
   function windBg(v) {
     if (v === 0)  return ['#ffffff','#000000'];
@@ -344,13 +342,14 @@
       </div>`;
   }
 
+  // GPS con timeout corto: si no responde en 3s, asumimos que es el reloj
   async function getLocationFromGPS() {
     return new Promise((resolve) => {
       if (!navigator.geolocation) { resolve(null); return; }
       navigator.geolocation.getCurrentPosition(
         (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
         ()    => resolve(null),
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+        { enableHighAccuracy: false, timeout: 3000, maximumAge: 60000 }
       );
     });
   }
@@ -368,22 +367,23 @@
     document.getElementById('estado').innerHTML = '<span class="spinner"></span> Cargando datos…';
 
     try {
+      // Siempre intentamos GPS. Si responde → móvil. Si falla → reloj.
+      const gps = await getLocationFromGPS();
+      const soyMovil = gps !== null;
+
       let url;
 
       if (modoVigo) {
-        // Botón Vigo ON
+        // Botón Vigo encendido: forzamos Vigo
         url = `/api/wind?lat=${VIGO_LAT}&lon=${VIGO_LON}&t=${Date.now()}`;
-        // En el reloj, no guardamos en JSONBin para no pisar la ubicación del móvil
-        if (isWatch) url += '&nosave=1';
-      } else if (isWatch) {
-        // Reloj: lee lo que el móvil dejó en JSONBin
-        url = `/api/wind?t=${Date.now()}`;
+        // Si NO soy móvil (reloj), no guardar en JSONBin
+        if (!soyMovil) url += '&nosave=1';
+      } else if (soyMovil) {
+        // Móvil sin Vigo: uso mi GPS real y guardo
+        url = `/api/wind?lat=${gps.lat}&lon=${gps.lon}&t=${Date.now()}`;
       } else {
-        // Móvil: lee GPS y guarda
-        const gps = await getLocationFromGPS();
-        url = gps
-          ? `/api/wind?lat=${gps.lat}&lon=${gps.lon}&t=${Date.now()}`
-          : `/api/wind?t=${Date.now()}`;
+        // Reloj sin Vigo: leo lo que el móvil dejó guardado
+        url = `/api/wind?t=${Date.now()}`;
       }
 
       const res  = await fetch(url, { cache: 'no-store' });
