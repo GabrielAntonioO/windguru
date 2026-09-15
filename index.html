@@ -373,12 +373,11 @@
 
       let url;
 
-      if (modoVigo) {
-        // Botón Vigo encendido: forzamos Vigo
-        url = `/api/wind?lat=${VIGO_LAT}&lon=${VIGO_LON}&t=${Date.now()}`;
-        // Si NO soy móvil (reloj), no guardar en JSONBin
-        if (!soyMovil) url += '&nosave=1';
+     if (modoVigo) {
+        // Botón Vigo: SIEMPRE temporal, nunca guarda en JSONBin
+        url = `/api/wind?lat=${VIGO_LAT}&lon=${VIGO_LON}&nosave=1&t=${Date.now()}`;
       } else if (soyMovil) {
+
         // Móvil sin Vigo: uso mi GPS real y guardo
         url = `/api/wind?lat=${gps.lat}&lon=${gps.lon}&t=${Date.now()}`;
       } else {
