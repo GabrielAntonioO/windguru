@@ -343,6 +343,19 @@
       </div>`;
   }
 
+  // ── GPS del dispositivo ──
+  async function getLocationFromGPS() {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) { resolve(null); return; }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+        ()    => resolve(null),
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+      );
+    });
+  }
+
+  // ── Toggle del modo Vigo ──
   function toggleVigo() {
     modoVigo = !modoVigo;
     const btn = document.getElementById('btnVigo');
@@ -356,9 +369,18 @@
     document.getElementById('estado').innerHTML = '<span class="spinner"></span> Cargando datos…';
 
     try {
-      const url = modoVigo
-        ? `/api/wind?lat=${VIGO_LAT}&lon=${VIGO_LON}&t=${Date.now()}`
-        : `/api/wind?t=${Date.now()}`;
+      let url;
+
+      if (modoVigo) {
+        // Modo Vigo: forzamos coordenadas de Vigo
+        url = `/api/wind?lat=${VIGO_LAT}&lon=${VIGO_LON}&t=${Date.now()}`;
+      } else {
+        // Modo normal: leer GPS del dispositivo
+        const gps = await getLocationFromGPS();
+        url = gps
+          ? `/api/wind?lat=${gps.lat}&lon=${gps.lon}&t=${Date.now()}`
+          : `/api/wind?t=${Date.now()}`; // fallback: JSONBin
+      }
 
       const res  = await fetch(url, { cache: 'no-store' });
       const json = await res.json();
