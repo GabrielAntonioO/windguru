@@ -18,12 +18,14 @@ async function getLocationFromJsonBin() {
   return { lat: DEFAULT_LAT, lon: DEFAULT_LON };
 }
 
+// Convert RH over water → RHi (over ice) using Magnus formula
 function toRHi(RHw, T_C) {
   const ew = 6.1078 * Math.exp(17.269 * T_C / (T_C + 237.29));
   const ei = 6.1078 * Math.exp(21.875 * T_C / (T_C + 265.5));
   return (RHw / 100) * (ew / ei) * 100;
 }
 
+// CPI → percentage (Schumann 1996, 95% threshold for ERA5 dry bias)
 function contrailPct(T, RHw) {
   const RHi = toRHi(RHw, T);
   if (T > -40) return 0;
@@ -76,6 +78,7 @@ export default async function handler(req, res) {
   res.setHeader("Content-Type", "application/json");
 
   try {
+    // Get coordinates: from query params (mobile) or JSONBin (watch/default)
     let lat, lon;
     
     if (req.query.lat && req.query.lon) {
@@ -89,6 +92,7 @@ export default async function handler(req, res) {
 
     const coords = `?latitude=${lat}&longitude=${lon}&timezone=Europe%2FMadrid&forecast_days=7`;
 
+    // URL 1: ECMWF for weather (temp, wind, rain, clouds) + sunrise/sunset
     const urlWeather =
       "https://api.open-meteo.com/v1/forecast" + coords +
       "&hourly=wind_speed_10m,wind_gusts_10m,wind_direction_10m" +
@@ -97,6 +101,7 @@ export default async function handler(req, res) {
       "&wind_speed_unit=kmh" +
       "&models=ecmwf_ifs025";
 
+    // URL 2: default model for contrail pressure levels
     const urlContrail =
       "https://api.open-meteo.com/v1/forecast" + coords +
       "&hourly=temperature_200hPa,temperature_225hPa,temperature_275hPa" +
@@ -113,6 +118,7 @@ export default async function handler(req, res) {
 
     if (!h?.time) throw new Error("Respuesta inesperada de Open-Meteo");
 
+    // Sunrise/sunset map
     const sunMap = {};
     if (daily?.time) {
       daily.time.forEach((date, i) => {
@@ -150,6 +156,7 @@ export default async function handler(req, res) {
       };
     });
 
+    // Filter from current hour, show 7 days
     const startIdx = result.findIndex(d => {
       const f = new Date(d.timestamp);
       return f.toDateString() === nowDate && d.hora >= nowHour;
@@ -158,6 +165,7 @@ export default async function handler(req, res) {
     const from = startIdx >= 0 ? startIdx : 0;
     const filtered = result.slice(from, from + 7 * 24);
 
+    // Get location name via reverse geocoding
     const locInfo = await getReverseGeocode(lat, lon);
 
     // Guardar en JSONBin SOLO si:
