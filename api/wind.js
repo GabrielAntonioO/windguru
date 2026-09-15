@@ -38,7 +38,7 @@ function contrailPct(T, RHw) {
 
 async function getReverseGeocode(lat, lon) {
   try {
-    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=es`;
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=es&zoom=14`;
     const r = await fetch(url, {
       headers: { 'User-Agent': 'WindguruApp/1.0', 'Accept-Language': 'es' }
     });
@@ -46,7 +46,7 @@ async function getReverseGeocode(lat, lon) {
     const data = await r.json();
     const a = data.address;
     const barrio = a.suburb || a.quarter || a.village || a.hamlet || null;
-    const ciudad = a.city || a.town || a.county || a.municipality || 'Desconocido';
+    const ciudad = a.city || a.town || a.village || a.municipality || a.county || 'Desconocido';
     return { barrio, ciudad };
   } catch {
     return { barrio: null, ciudad: 'Desconocido' };
